@@ -1,0 +1,254 @@
+(*
+  Cours "Typage et Analyse Statique"
+  Université Pierre et Marie Curie
+  Antoine Miné 2015
+*)
+
+(* 
+   The constant domain
+*)
+
+open Abstract_syntax_tree
+open Value_domain
+
+  
+module Constants = (struct
+  
+  (* types *)
+  (* ***** *)
+  type aux =
+    | pinf
+    | minf
+    | Cst of Z.a
+
+  (* type of abstract values *)
+  type t =
+    | iv of aux*aux
+    | BOT         (* the set is empty (not reachable) *)
+   
+  (* utilities *)
+  (* ********* *)
+
+
+  (* lift unary arithmetic operations, from integers to t *)
+  let lift1 f x =
+    match x with
+    | BOT -> BOT
+    | iv (a,b) -> (match a,b with
+        |Z.x,Z.y -> iv (f a, f b)
+        |Z.x,pinf -> iv ((f Z.x),pinf)  
+        |minf,Z.x ->iv (minf, Z.x)
+        |_ -> iv (a,b)) 
+
+  (*let ouex a b = (a && (not b)) || ((not a) && b)*)
+  
+  (* lift binary arithmetic operations *)
+  let lift2 f x y =
+     match x with
+       | BOT,_|_,BOT -> BOT
+       | iv (a,b),iv (c,d) when ((a=minf || c=minf) && (b=pinf || d=pinf))-> iv (minf,pinf)
+       | iv (a,b),iv (c,d) when (a=minf || c=minf) -> iv (minf,(f b d))
+       | iv (a,b),iv (c,d) when (b=pinf || d=pinf) -> iv ((f a c),pinf)
+       | iv (a,b),iv (c,d) -> iv (f a c,f a d)
+    
+
+
+
+  (* interface implementation *)
+  (* ************************ *)
+
+
+  (* unrestricted value *)
+  let top = iv (pinf ,minf)
+
+  (* bottom value *)
+  let bottom = BOT
+
+  (* constant *)
+  let const c = iv (c ,c)
+
+  (* interval *)
+  let rand x y =
+    if x=y then iv( x ,x)
+    else if x<y then iv (x, y)
+    else BOT
+
+
+  (* arithmetic operations *)
+
+  let neg = lift1 Z.neg
+
+  let add = lift2 Z.add
+
+  let sub = lift2 Z.sub
+
+  let mul x y = 
+	match x,y with
+	| TOP, Cst a when a=Z.zero -> Cst Z.zero
+	| Cst a, TOP when a=Z.zero -> Cst Z.zero
+	
+	| a,b-> lift2 Z.mul a b 
+
+  let modu = lift2 Z.rem
+
+  let div a b =
+    if b = Cst Z.zero then BOT
+    else lift2 Z.div a b
+
+
+  (* set-theoretic operations *)
+
+  let min a c =
+    match a,c with
+    |Z.x , Z.y ->  if Z.le_big_int Z.x Z.y then Z.x else Z.y
+    |minf,_|_,minf -> minf
+    |x,pinf|pinf,x-> x
+
+
+  let max a c =
+    match a,c with
+    |Z.x , Z.y ->  if Z.ge_big_int Z.x Z.y then Z.x else Z.y
+    |minf,x|x,minf -> x
+    |x,pinf|pinf,x-> pinf
+  
+  let gbis a c =
+    match a,c with
+    | x,x -> false
+    |Z.x , Z.y ->  if Z.gt_big_int Z.x Z.y then true else false
+    |minf,x -> false
+    |x,minf -> true
+    |x,pinf-> false
+    |pinf,x-> true
+
+
+  let lbis b d =
+    match b,d with
+    |x,x -> false
+    |Z.x , Z.y ->  if Z.lt_big_int Z.x Z.y then true else false
+    |minf,x-> true
+    |x,minf -> false
+    |x,pinf-> true
+    |pinf,x-> false
+
+  let eqbis a c = 
+    match a,c with
+    | x,x -> true
+    |Z.x , Z.y ->  if Z.gt_big_int Z.x Z.y then true else false
+    |minf,x-> false
+    |x,minf -> true
+    |x,pinf-> false
+    |pinf,x-> true
+
+  let join a b = match a,b with
+  | BOT,x | x,BOT -> x
+  | iv a b,iv c d -> iv (min a c) (max c d)
+  
+  let meet a b = match a,b with
+  | BOT,x | x,BOT -> BOT
+  | iv a b,iv c d -> iv (max a c) (min c d)
+  
+
+  (* no need for a widening as the domain has finite height; we use the join *)
+  let widen = join
+
+
+  (* comparison operations (filters) *)
+
+  let eq a b =a,b
+(*	match a,b with
+	| TOP,Cst x -> Cst x,Cst x
+	| Cst x,TOP -> Cst x,Cst x
+	|  Cst x, Cst y when Z.compare x y != 0 -> BOT,BOT
+  | x,y -> x,y*)
+
+  let neq a b =a,b 
+	(*match a,b with
+	|  Cst x, Cst y when Z.compare x y = 0 -> BOT,BOT
+	| x,y -> x,y
+ *)
+  let geq a b =a,b
+   (* match a,b with 
+	|  Cst x, Cst y when Z.compare x y < 0 -> BOT,BOT
+	| x,y -> x,y
+	 
+   *) 
+  let gt a b =
+   (* match a, b with
+    |  Cst x, Cst y when Z.compare x y <= 0 -> BOT,BOT
+    |x,y -> x,y
+     
+   *)
+
+  (* subset inclusion of concretizations *)
+  let subset a b = match a,b with
+  | BOT,_ | _,TOP -> true
+  | iv a b, iv c d -> (
+                        match 
+  | _ -> false
+
+  (* check the emptyness of the concretization *)
+  let is_bottom a =
+    a=BOT
+
+  (* prints abstract element *)
+  let print fmt x = match x with
+  | BOT -> Format.fprintf fmt "bottom"
+  | TOP -> Format.fprintf fmt "top"
+  | Cst x -> Format.fprintf fmt "{%s}" (Z.to_string x)
+
+
+  (* operator dispatch *)
+        
+  let unary x op = match op with
+  | AST_UNARY_PLUS  -> x
+  | AST_UNARY_MINUS -> neg x
+
+  let binary x y op = match op with
+  | AST_PLUS     -> add x y
+  | AST_MINUS    -> sub x y
+  | AST_MULTIPLY -> mul x y
+  | AST_MODULO -> modu x y
+  | AST_DIVIDE   -> div x y
+
+  let compare x y op = match op with
+  | AST_EQUAL         -> eq x y
+  | AST_NOT_EQUAL     -> neq x y
+  | AST_GREATER_EQUAL -> geq x y
+  | AST_GREATER       -> gt x y
+  | AST_LESS_EQUAL    -> let y',x' = geq y x in x',y'
+  | AST_LESS          -> let y',x' = gt y x in x',y'
+        
+
+
+  let bwd_unary x op r = match op with
+  | AST_UNARY_PLUS  -> meet x r
+  | AST_UNARY_MINUS -> meet x (neg r)
+
+        
+  let bwd_binary x y op r = match op with
+
+  | AST_PLUS ->
+      (* r=x+y => x=r-y and y=r-x *)      
+      meet x (sub r y), meet y (sub r x)
+
+  | AST_MINUS ->
+      (* r=x-y => x=y+r and y=x-r *)
+      meet x (add y r), meet y (sub y r)
+        
+  | AST_MULTIPLY ->
+      (* r=x*y => (x=r/y or y=r=0) and (y=r/x or x=r=0)  *)
+      let contains_zero o = subset (const Z.zero) o in
+      (if contains_zero y && contains_zero r then x else meet x (div r y)),
+      (if contains_zero x && contains_zero r then y else meet y (div r x))
+  | AST_MODULO ->
+      (* m x%y => (k in env.Z, x= k*y+m *)
+      x,y
+        
+  | AST_DIVIDE ->
+      (* this is sound, but not precise *)
+      x, y
+        
+      
+end : VALUE_DOMAIN)
+
+    
