@@ -1,4 +1,3 @@
-
 (*
   Cours "Typage et Analyse Statique"
   Université Pierre et Marie Curie
@@ -43,6 +42,7 @@ let error ext s =
 let fatal_error ext s =
   Format.printf "%s: FATAL ERROR: %s@\n" (string_of_extent ext) s;
   exit 1
+
 
 
 (* interpreter signature *)
@@ -118,7 +118,7 @@ module Interprete(D : DOMAIN) =
 
       
   (* interprets a statement, by induction on the syntax *)
-  let rec eval_stat (a:t) ((s,ext):stat ext) : t = 
+  let rec eval_stat (a:t) ((s,ext):stat ext) : t = (* evalue une instruction dans un environement donné *) 
     let r = match s with    
 
     | AST_block (decl,inst) ->

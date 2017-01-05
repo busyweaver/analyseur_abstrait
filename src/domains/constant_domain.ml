@@ -78,10 +78,8 @@ module Constants = (struct
 
   let mul x y = 
 	match x,y with
-	| TOP, Cst a when a=Z.zero -> Cst Z.zero
-	| Cst a, TOP when a=Z.zero -> Cst Z.zero
-	
-	| a,b-> lift2 Z.mul a b 
+	| TOP, Cst a |Cst a, TOP when  a= Z.zero -> Cst Z.zero
+	| _ -> lift2 Z.mul x y
 
   let modu = lift2 Z.rem
 
@@ -92,7 +90,8 @@ module Constants = (struct
 
   (* set-theoretic operations *)
   
-  let join a b = match a,b with
+  let join a b =
+   match a,b with
   | BOT,x | x,BOT -> x
   | Cst x, Cst y when x=y -> a
   | _ -> TOP
@@ -103,46 +102,38 @@ module Constants = (struct
   | _ -> BOT
 
 
-  (* no need for a widening as the domain has finite height; we use the join *)
+  (* no need for a widening as the domain has finite height; we use the join : Pas besoin d'un elargissement *)
   let widen = join
 
 
   (* comparison operations (filters) *)
 
-  let eq a b =
-	match a,b with
-	| TOP,Cst x -> Cst x,Cst x
-	| Cst x,TOP -> Cst x,Cst x
-	|  Cst x, Cst y when Z.compare x y != 0 -> BOT,BOT
-	| x,y -> x,y
+  let eq a b =	
+    match a, b with
+    | Cst x, TOP| TOP, Cst x -> Cst x , Cst x
+    | Cst x, BOT| BOT, Cst x -> BOT, BOT
+    | Cst x, Cst y when Z.compare x y =0 -> Cst x, Cst x (* Proposition de correction *)
+    | _ -> BOT, BOT
 
-(*    let nenv= meet a b in
+(*let nenv= meet a b in
     nenv, nenv*)
 
-  let neq a b = 
-	match a,b with
-	|  Cst x, Cst y when Z.compare x y = 0 -> BOT,BOT
-	| x,y -> x,y
+  let neq a b =
+    match a,b with
+	|Cst x, Cst y when Z.compare x y =0 -> BOT,BOT
+ 	|_ -> a,b
 
-  let geq a b =
-    match a,b with 
-	|  Cst x, Cst y when Z.compare x y < 0 -> BOT,BOT
-	| x,y -> x,y
-	(*| BOT , x -> x,x
-        | Cst x, TOP ->BOT,BOT
-	| Cst x, BOT -> Cst x, Cst x
-	| Cst x, Cst y when Z.compare x y <= 0 -> Cst y,Cst y
-	| Cst x, Cst y -> Cst x, Cst x*)
-	 
+  let geq a b = match a, b with
+	| Cst x, Cst y when Z.compare x y >= 0 -> a,b
+	| TOP, _|_,TOP -> a, b
+	| Cst x, BOT-> Cst x,BOT
+	| _ -> BOT, BOT 
       
-  let gt a b =
-    match a, b with
-    |  Cst x, Cst y when Z.compare x y <= 0 -> BOT,BOT
-    |x,y -> x,y
-      (*	| Cst x, Cst y when Z.compare x y > 0 -> Cst x,Cst x
-	| Cst x, Cst y -> Cst y, Cst y 
-	|x,y->x,y*)
-
+  let gt a b = match a, b with
+	| Cst x, Cst y when Z.compare x y > 0 -> a, b
+	| TOP, Cst x -> TOP, Cst x
+	| Cst x, BOT -> Cst x, BOT
+	| _ -> BOT, BOT
 
   (* subset inclusion of concretizations *)
   let subset a b = match a,b with
@@ -206,11 +197,11 @@ module Constants = (struct
       (if contains_zero x && contains_zero r then y else meet y (div r x))
   | AST_MODULO ->
       (* m x%y => (k in env.Z, x= k*y+m *)
-      x,y
+      x,y (* A implémenter *)
         
   | AST_DIVIDE ->
       (* this is sound, but not precise *)
-      x, y
+      TOP, TOP (* A implementer *)
         
       
 end : VALUE_DOMAIN)

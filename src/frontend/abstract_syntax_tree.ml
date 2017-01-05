@@ -13,12 +13,12 @@ open Lexing
 
 
 (* position in the source file, we use ocamllex's default type *)
-type position = Lexing.position
-let position_unknown = Lexing.dummy_pos
+type position = Lexing.position (* Gere la position du curseur dans le fichier source *)
+let position_unknown = Lexing.dummy_pos (* Position non valide dans le fichier source *)
 
 
 (* extents are pairs of positions *)
-type extent = position * position (* start/end *)
+type extent = position * position (* start/end : Designe une zone rectangulaire dans le fichier source  *) 
 let extent_unknown = (position_unknown, position_unknown)
 
 
