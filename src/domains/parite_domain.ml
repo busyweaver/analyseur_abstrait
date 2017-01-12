@@ -1,4 +1,4 @@
-wwwww(*
+(*
   Cours "Typage et Analyse Statique"
   Université Pierre et Marie Curie
   Antoine Miné 2015
@@ -21,7 +21,8 @@ module Constants = (struct
 
   (* type of abstract values *)
   type t =
-    | Cst of Z.t  (* the set is a single value (constant) *)
+    | Odd
+    | Even
     | BOT         (* the set is empty (not reachable) *)
     | TOP         (* the set of all integers (not constant)  *)
 
@@ -35,14 +36,17 @@ module Constants = (struct
     match x with
     | BOT -> BOT
     | TOP -> TOP
-    | Cst a -> Cst (f a)
+    | Even -> Even
+    | Odd -> Odd
 
   (* lift binary arithmetic operations *)
   let lift2 f x y =
     match x,y with
     | BOT,_ | _,BOT -> BOT
     | TOP,_ | _,TOP -> TOP
-    | Cst a, Cst b -> Cst (f a b)
+    | Even,Odd| Even,Odd -> Odd
+    | Even,Even -> Even
+    | Odd,Odd-> Even
           
 
 
@@ -63,9 +67,8 @@ module Constants = (struct
 
   (* interval *)
   let rand x y =
-    if x=y then Cst x 
-    else if x<y then TOP
-    else BOT
+    if x=y then (if (Z.equal (Z.erem x y) 1 ) Odd else Even )  
+    else TOP
 
 
   (* arithmetic operations *)

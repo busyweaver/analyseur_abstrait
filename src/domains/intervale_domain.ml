@@ -35,60 +35,71 @@ module Intervals = (struct
     | BOT -> BOT
     | Iv (a,b) -> (
 		match a,b with
-        	|Cst x,Cst y -> Iv (f x, f y)
-        	|Cst x,Pinf -> Iv ((f x),Pinf)  
-      		|Minf,Cst x ->Iv (Minf, f x)
+        	|Cst x,Cst y -> Iv (Cst (f x),Cst (f y))
+        	|Cst x,Pinf -> Iv (Cst (f x),Pinf)  
+      		|Minf,Cst x ->Iv (Minf, Cst (f x))
         	|_ -> Iv (a,b)) 
 
   (*let ouex a b = (a && (not b)) || ((not a) && b)*)
   
   (* lift binary arithmetic operations *)
   let lift2 f x y =
-     match x with
+     match x,y with
        | BOT,_|_,BOT -> BOT
-       | Iv (a,b),Iv (c,d) when ((a=Minf || c=Minf) && (b=Pinf || d=Pinf))-> Iv (Minf,Pinf)
-       | Iv (a,b),Iv (c,d) when (a=Minf || c=Minf) -> Iv (Minf,(f b d))
-       | Iv (a,b),Iv (c,d) when (b=Pinf || d=Pinf) -> Iv ((f a c),Pinf)
-       | Iv (a,b),Iv (c,d) -> Iv (f a c,f b d)
-    
+       | Iv (a,b),Iv (c,d) ->(match a,b,c,d with
+           |Minf,_,_,Pinf| _,Pinf,Minf,_| Minf,Pinf,_,_ | _,_,Minf,Pinf -> Iv(Minf,Pinf)
+           |Minf,Cst b,_,Cst d| _,Cst b,Minf,Cst d -> Iv (Minf, Cst (f b d))
+           |Cst a,Pinf,Cst c,_| Cst a,_,Cst c,Pinf -> Iv (Cst (f a c),Pinf)
+           |Cst a,Cst b,Cst c,Cst d -> Iv (Cst (f a c),Cst (f b d))
+           |_ -> BOT)
+       
+             
 
   (* interface implementation *)
   (* ************************ *)
 
   (* unrestricted value *)
-  let top = Iv (Pinf ,Minf)
+  let top = Iv (Minf ,Pinf)
 
   (* bottom value *)
   let bottom = BOT
 
   (* constant *)
-  let const c = Iv (c ,c)
+  let const c = Iv (Cst c ,Cst c)
 
   (* interval *)
   let rand x y =
-    if x=y then Iv( x ,x)
-    else if x<y then Iv (x, y)
-    else BOT
+    if x=y then Iv(Cst x ,Cst x)
+    else (if x<y then Iv (Cst x,Cst y)
+    else BOT)
       
   let mulbis a c =
     match a,c with
-    |Cst x ,Cst y -> Z.mul x y 
-    |Minf,Cst x|Cst x,Minf -> if (lt_big_int x Z.zero) then Pinf else (if (gt_big_int x Z.zero) then Minf else Z.zero)
-    |Pinf,Cst x|Cst x,Pinf -> if (gt_big_int x Z.zero) then Pinf else (if (lt_big_int x Z.zero) then Minf else Z.zero)
+    |Cst x ,Cst y -> Cst (Z.mul x y) 
+    |Minf,Cst x|Cst x,Minf -> if (Z.compare x Z.zero < 0) then Pinf else (if (Z.compare x Z.zero > 0) then Minf else Cst Z.zero)
+    |Pinf,Cst x|Cst x,Pinf -> if (Z.compare x Z.zero > 0) then Pinf else (if (Z.compare x Z.zero < 0) then Minf else Cst Z.zero)
+    |_ -> Minf(* we should not get this case.. maybe it is better to throw an exception*)
 
-let divbis a c =
+
+  let divaux a c =
     match a,c with
-      |Cst x ,Cst y -> if (y=Z.zero) then (if Z.gt_big_int x Z.zero then Pinf else (if (Z.lt_big_int x Z.zero) then Minf else Z.zero)) else Z.div_big_int  x y
-      | Cst x,Minf | Cst,Pinf -> Z.zero
-      | Pinf,Cst y -> (if (gt_big_int y Z.zero) then Pinf else Minf)
-      | Minf,Cst y -> (if (gt_big_int y Z.zero) then Minf else Pinf)
+      |Cst x ,Cst y -> if (y=Z.zero) then (if Z.compare x Z.zero > 0 then Pinf else (if (Z.compare x Z.zero < 0) then Minf else Cst Z.zero)) else Cst (Z.ediv  x y)
+      | Cst x,Minf | Cst x,Pinf -> Cst Z.zero
+      | Pinf,Cst y -> (if (Z.compare y Z.zero > 0) then Pinf else Minf)
+      | Minf,Cst y -> (if (Z.compare y Z.zero > 0) then Minf else Pinf)
+      |_ -> Minf(* we should not get this case.. maybe it is better to throw an exception*)
    
+  let divbis a c =
+    match a,c with
+    |BOT,_ | _,BOT -> BOT
+    |Iv(a,b),Iv(c,d) -> Iv (divaux a c, divaux b d)
+    
   
-let rec rl f l def = match l with |[]->def |[z] -> z| z::zs -> f z (maxl f zs def)
+let rec rl f l def = match l with |[]->def |[z] -> z| z::zs -> f z (rl f zs def)
 
   let maxval a c =
     match a,c with
-    |Cst x, Cst y ->  if Z.gt_big_int x y then x else y
+    |Cst x, Cst y ->  if (Z.compare x y < 0) then Cst x else Cst y
     |Minf,x -> x
     |x,Minf -> x
     |x,Pinf-> Pinf
@@ -96,7 +107,7 @@ let rec rl f l def = match l with |[]->def |[z] -> z| z::zs -> f z (maxl f zs de
 
   let minval a c =
     match a,c with
-    |Cst x, Cst y ->  if Z.lt_big_int x y then x else y
+    |Cst x, Cst y ->  if (Z.compare x y < 0) then Cst x else Cst y
     |Minf,x -> Minf
     |x,Minf -> Minf
     |x,Pinf-> x
@@ -113,7 +124,7 @@ let join a b = match a,b with
 
 
   (* arithmetic operations *)
-
+  (*there is problems in neg. Redefinition requierd*)
   let neg = lift1 Z.neg
 
   let add = lift2 Z.add
@@ -122,13 +133,13 @@ let join a b = match a,b with
 
   let mul x y = 
 	match x,y with
-	| Bot,_|_,BOT -> BOT
-        | Iv (a,b),Iv (c,d)-> Iv (rl minval [mulbis a c;mulbis a d;mulbis b c;mulbis b d ],rl maxval [mulbis a c;mulbis a d;mulbis b c;mulbis b d ])
+	| BOT,_|_,BOT -> BOT
+        | Iv (a,b),Iv (c,d)-> Iv (rl minval [mulbis a c;mulbis a d;mulbis b c;mulbis b d ] Minf,rl maxval [mulbis a c;mulbis a d;mulbis b c;mulbis b d ] Minf)
 
   let modu = lift2 Z.rem
 
   let div a b =
-    join (div_bis a (meet b Iv (Z.one,Pinf))) (div_bis a (meet b Iv (Minf,Z.minus_one)))
+    join (divbis a (meet b (Iv (Cst Z.one,Pinf)))) (divbis a (meet b (Iv (Minf,Cst Z.minus_one))))
 
   (* set-theoretic operations *)
 
@@ -136,7 +147,7 @@ let join a b = match a,b with
   let gbis a c =
     match a,c with
     | x,y when x=y -> false
-    |Cst x, Cst y ->  if Z.gt_big_int x y then true else false
+    |Cst x, Cst y ->  if Z.compare x y > 0 then true else false
     |Minf,x -> false
     |x,Minf -> true
     |x,Pinf-> false
@@ -146,7 +157,7 @@ let join a b = match a,b with
   let lbis b d =
     match b,d with
     |x,y when (x=y) -> false
-    |Cst x , Cst y ->  if Z.lt_big_int x y then true else false
+    |Cst x , Cst y ->  if Z.compare x y < 0 then true else false
     |Minf,x-> true
     |x,Minf -> false
     |x,Pinf-> true
@@ -154,49 +165,67 @@ let join a b = match a,b with
 
   let eqbis a c = 
     match a,c with
-    | x,x -> true
-    |Cst x , Cst y ->  if Z.gt_big_int x y then true else false
+    | x,y when (x=y)-> true
+    |Cst x , Cst y ->  if Z.compare x y = 0 then true else false
     |Minf,x-> false
     |x,Minf -> true
     |x,Pinf-> false
     |Pinf,x-> true
 
+  let plus_one x =
+    match x with
+    |Pinf -> Pinf
+    |Minf -> Minf
+    |Cst a -> Cst (Z.add a Z.one)
+
+
+
+  let minus_one x =
+    match x with
+    |Pinf -> Pinf
+    |Minf -> Minf
+    |Cst a -> Cst (Z.sub a Z.one)
   
-  (* no need for a widening as the domain has finite height; we use the join *)
+  
+  (* needs to be implemented *)
   let widen = join
 
+   let minus x y  = 
+    match x,y with
+    |BOT,_ | _,BOT -> BOT
+    |Iv(a,b),Iv(c,d) ->
+      
+      if (lbis a c) then
+        (if (gbis c b) then Iv (a,b) else (if (gbis d b) then (if (eqbis b c) then Iv(a,minus_one c) else Iv (a,c)) else Iv (a,b)))
+      else  (if (lbis b c) then Iv (a,b) else (if (gbis d b) then BOT else Iv (c,b)))
 
   (* comparison operations (filters) *)
 
-  let eq a b =a,b
-(*	match a,b with
-	| TOP,Cst x -> Cst x,Cst x
-	| Cst x,TOP -> Cst x,Cst x
-	|  Cst x, Cst y when Z.compare x y != 0 -> BOT,BOT
-  | x,y -> x,y*)
+  let eq a b =
+    meet a b,meet a b
+   
+let neq a b =
+  let z = meet a b in
+  minus a z,minus b z
 
-  let neq a b =a,b 
-	(*match a,b with
-	|  Cst x, Cst y when Z.compare x y = 0 -> BOT,BOT
-	| x,y -> x,y
- *)
-  let geq a b =a,b
-   (* match a,b with 
-	|  Cst x, Cst y when Z.compare x y < 0 -> BOT,BOT
-	| x,y -> x,y
-	 
-   *) 
-  let gt a b =a,b
-   (* match a, b with
-    |  Cst x, Cst y when Z.compare x y <= 0 -> BOT,BOT
-    |x,y -> x,y
-     
-   *)
+let geq a b =a,b
+
+let gt x y = x,y
+  (* match x,y with *)
+  (* | BOT,_|_,BOT -> BOT,BOT *)
+  (* | iv (a,b),iv(c,d) -> *)
+  (*   if (lbis a c) *)
+  (*   then (if (gbis c b) then BOT,BOT else (if gbis d b) then (if (eqbis b c) then iv(plus_one c,b),iv(plus_one c,b) else iv (c,b),iv(c,b) ) else iv (plus_one c,b),iv(c,d)) *)
+  (*   else (if (lbis b c) then BOT,BOT(\*normalement cest un cas contradictoire*\) else (if (gbis d b) then iv(a,b),iv(c,minus_one c) else iv(a,b),iv()))  *)
+  
+            
 
   (* subset inclusion of concretizations *)
   let subset a b = match a,b with
-  | BOT,_ | _,TOP -> true
-  | Iv (a , b), Iv (c , d) -> true  (*if (ge_big_int a c && le_big_int b d) then true else false*)
+    | a,b when (a=b) -> true
+    | BOT,_ | _,Iv (Minf,Pinf) -> true
+    | _,BOT | Iv (Minf,Pinf), _ -> false
+    | Iv (a , b), Iv (c , d) -> if ((gbis a c || eqbis a c) && (lbis b d || eqbis b d)) then true else false
 
   (* check the emptyness of the concretization *)
   let is_bottom a =
