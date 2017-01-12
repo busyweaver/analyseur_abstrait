@@ -1,4 +1,4 @@
-wwwww(*
+(*
   Cours "Typage et Analyse Statique"
   Université Pierre et Marie Curie
   Antoine Miné 2015

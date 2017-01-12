@@ -193,12 +193,15 @@ let join a b = match a,b with
    let minus x y  = 
     match x,y with
     |BOT,_ | _,BOT -> BOT
-    |Iv(a,b),Iv(c,d) ->
+    |Iv(a,b),Iv(c,d) when (gbis c b) -> Iv (a,b)
+    |Iv(a,b),Iv(c,d) when (gbis a d) -> Iv (a,b)
+    |Iv(a,b),Iv(c,d) when ((lbis a c) && (gbis b d)) -> Iv (a,b)
+    |Iv(a,b),Iv(c,d) when ((lbis c a) && (gbis d b)) -> BOT
+    |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(a, minus_one c)
+    |Iv(a,b),Iv(c,d) when (not(gbis a d)) -> Iv(plus_one c, b)
+    |_ ,_-> x
       
-      if (lbis a c) then
-        (if (gbis c b) then Iv (a,b) else (if (gbis d b) then (if (eqbis b c) then Iv(a,minus_one c) else Iv (a,c)) else Iv (a,b)))
-      else  (if (lbis b c) then Iv (a,b) else (if (gbis d b) then BOT else Iv (c,b)))
-
+    
   (* comparison operations (filters) *)
 
   let eq a b =
@@ -208,15 +211,24 @@ let neq a b =
   let z = meet a b in
   minus a z,minus b z
 
-let geq a b =a,b
 
-let gt x y = x,y
-  (* match x,y with *)
-  (* | BOT,_|_,BOT -> BOT,BOT *)
-  (* | iv (a,b),iv(c,d) -> *)
-  (*   if (lbis a c) *)
-  (*   then (if (gbis c b) then BOT,BOT else (if gbis d b) then (if (eqbis b c) then iv(plus_one c,b),iv(plus_one c,b) else iv (c,b),iv(c,b) ) else iv (plus_one c,b),iv(c,d)) *)
-  (*   else (if (lbis b c) then BOT,BOT(\*normalement cest un cas contradictoire*\) else (if (gbis d b) then iv(a,b),iv(c,minus_one c) else iv(a,b),iv()))  *)
+
+let gt x y =
+    match x,y with
+    |BOT,_ | _,BOT -> BOT,BOT
+    |Iv(a,b),Iv(c,d) when (gbis c b) -> BOT,BOT
+    |Iv(a,b),Iv(c,d) when (gbis a d) -> Iv(a,b),Iv(c,d)
+    |Iv(a,b),Iv(c,d) when ((lbis a c) && (gbis b d)) ->Iv(plus_one c,b),Iv(c,d)
+    |Iv(a,b),Iv(c,d) when ((lbis c a) && (gbis d b)) -> Iv(a,b),Iv(c,minus_one b)
+    |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(plus_one c,b),Iv(c,minus_one b)
+    |Iv(a,b),Iv(c,d) when (not(gbis a d)) -> Iv(a,b),Iv(c,d) 
+    |_ ,_-> x,y
+      
+let geq a b =
+  let x = gt a b in
+  let y = eq a b in
+    join (fst x) (fst y),join (snd x) (snd y)
+  
   
             
 
