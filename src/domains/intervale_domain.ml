@@ -188,7 +188,14 @@ let join a b = match a,b with
   
   
   (* needs to be implemented *)
-  let widen = join
+  let widen x y =
+    match x,y with
+    |BOT,_|_,BOT -> BOT
+    |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (not (lbis b d))) -> Iv(a,b)
+    |Iv(a,b), Iv (c,d) when ((gbis a c) && (not (lbis b d)))  -> Iv(Minf,b)
+    |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (lbis b d)) -> Iv(a,Pinf)
+    |Iv(a,b), Iv (c,d) when ((gbis a c) && (lbis b d)) -> Iv(Minf,Pinf)
+    |_ -> join x y
 
    let minus x y  = 
     match x,y with
