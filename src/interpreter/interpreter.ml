@@ -53,7 +53,7 @@ let fatal_error ext s =
 module type INTERPRETER = 
 sig
   (* analysis of a program, given its abstract syntax tree *)
-  val eval_prog: prog-> unit
+  val eval_prog: char->int->prog->unit
 end
 
 
@@ -118,7 +118,7 @@ module Interprete(D : DOMAIN) =
 
       
   (* interprets a statement, by induction on the syntax *)
-  let rec eval_stat (a:t) ((s,ext):stat ext) : t = (* evalue une instruction dans un environement donné *) 
+  let rec eval_stat (c:char) (n:int) (a:t) ((s,ext):stat ext) : t = (* evalue une instruction dans un environement donné *) 
     let r = match s with    
 
     | AST_block (decl,inst) ->
@@ -129,7 +129,7 @@ module Interprete(D : DOMAIN) =
             a decl
         in
         (* interpret the block recursively *)
-        let a = List.fold_left eval_stat a inst in
+        let a = List.fold_left (eval_stat c n) a inst in
         (* destroy the local variables *)
         List.fold_left
           (fun a ((_,v),_) -> D.del_var a v)
@@ -141,14 +141,14 @@ module Interprete(D : DOMAIN) =
           
     | AST_if (e,s1,Some s2) ->
         (* compute both branches *)
-        let t = eval_stat (filter a e true ) s1 in
-        let f = eval_stat (filter a e false) s2 in
+        let t = eval_stat c n (filter a e true ) s1 in
+        let f = eval_stat c n (filter a e false) s2 in
         (* then join *)
         D.join t f
           
     | AST_if (e,s1,None) ->
         (* compute both branches *)
-        let t = eval_stat (filter a e true ) s1 in
+        let t = eval_stat c n (filter a e true ) s1 in
         let f = filter a e false in
         (* then join *)
         D.join t f
@@ -163,8 +163,25 @@ module Interprete(D : DOMAIN) =
         (* function to accumulate one more loop iteration:
            F(X(n+1)) = X(0) U body(F(X(n)
            we apply the loop body and add back the initial abstract state
-         *)        
-        let f x = D.join a (eval_stat (filter x e true) s) in
+        *)        
+        let f x =
+          if(c=='d')
+          then
+            ( if(n>0)
+              then 
+                D.join a (eval_stat c (n-1) (filter x e true) s)
+              else
+                D.widen a (eval_stat c n (filter x e true) s))
+
+          else if(c=='u')
+          then(if(n>0)
+               then (eval_stat c (n-1) (filter x e true) s)
+              else D.widen a (eval_stat c n (filter x e true) s))
+            
+          else
+            D.widen a (eval_stat c n (filter x e true) s)
+
+              in
         (* compute fixpoint from the initial state (i.e., a loop invariant) *)
         let inv = fix f a in
         (* and then filter by exit condition *)
@@ -198,9 +215,9 @@ module Interprete(D : DOMAIN) =
       
 
   (* entry-point of the program analysis *)
-  let rec eval_prog (l:prog) : unit =
+  let rec eval_prog (c:char) (n:int) (l:prog)  : unit =
     (* simply analyze each statement in the program *)
-    let _ = List.fold_left eval_stat (D.init()) l in
+    let _ = List.fold_left (eval_stat c n) (D.init()) l in
     (* nothing useful to return *)
     ()
 

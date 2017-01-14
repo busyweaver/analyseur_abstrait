@@ -5,7 +5,7 @@
 *)
 
 (* 
-   The constant domain
+   The interval domain
 *)
 
 open Abstract_syntax_tree

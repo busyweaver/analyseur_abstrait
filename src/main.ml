@@ -38,9 +38,12 @@ let main () =
   Arg.parse
     (* handle options *)
     ["-trace", Arg.Set Interpreter.trace, "";
-     "-concrete", Arg.Unit (fun () -> action := ConcreteAnalysis.eval_prog),"";
-     "-constant", Arg.Unit (fun () -> action := ConstantAnalysis.eval_prog),"";
-     "-interval", Arg.Unit (fun () -> action := IntervaleAnalysis.eval_prog),"";
+     "-concrete", Arg.Unit (fun () -> action := ConcreteAnalysis.eval_prog 'a' 0),"";
+     "-constant", Arg.Unit (fun () -> action := ConstantAnalysis.eval_prog 'a' 0),"";
+     "-interval", Arg.Unit (fun () -> action := IntervaleAnalysis.eval_prog 'a' 0),"";
+     "-delay", Arg.Int (fun (n) -> action := IntervaleAnalysis.eval_prog 'd' n),"";
+     "-unroll", Arg.Int (fun (n) -> action := IntervaleAnalysis.eval_prog 'u' n),"";
+     
    ]
     (* handle filenames *)
     (fun filename -> files := (!files)@[filename])
