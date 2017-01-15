@@ -1,0 +1,10 @@
+*.[oa]
+*.cmo
+*.cmi
+*.cmx
+*.byte
+depend
+src/frontend/lexer.ml
+src/frontend/parser.conflicts
+src/frontend/parser.ml
+src/frontend/parser.mli

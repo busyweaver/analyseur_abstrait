@@ -88,35 +88,44 @@ module Intervals = (struct
       | Pinf,Cst y -> (if (Z.compare y Z.zero > 0) then Pinf else Minf)
       | Minf,Cst y -> (if (Z.compare y Z.zero > 0) then Minf else Pinf)
       |_ -> Minf(* we should not get this case.. maybe it is better to throw an exception*)
-   
-  let divbis a c =
-    match a,c with
-    |BOT,_ | _,BOT -> BOT
-    |Iv(a,b),Iv(c,d) -> Iv (divaux a c, divaux b d)
-    
   
+ let gbis a c =
+    match a,c with
+    | Cst x,Cst y when x=y -> false
+    |Cst x, Cst y ->  if Z.compare x y > 0 then true else false
+    |Minf,x|x,Pinf -> false
+    |Pinf,x|x,Minf -> true
+ 
+    
 let rec rl f l def = match l with |[]->def |[z] -> z| z::zs -> f z (rl f zs def)
 
-  let maxval a c =
-    match a,c with
-    |Cst x, Cst y ->  if (Z.compare x y < 0) then Cst y else Cst x
+  let maxval a b =
+    match a,b with
+    |Cst x, Cst y ->  if (Z.compare x y >0) then Cst x else Cst y
     |Minf,x|x,Minf -> x
     |_,Pinf|Pinf,_-> Pinf
 
-  let minval a c =
-    match a,c with
-    |Cst x, Cst y ->  if (Z.compare x y < 0) then Cst x else Cst y
+  let minval a b =
+    match a,b with
+    |Cst x, Cst y ->  if (Z.compare x y <0) then Cst x else Cst y
     |Minf,_|_,Minf -> Minf
     |x,Pinf|Pinf,x-> x
 
-let join a b = match a,b with
-  | BOT,x | x,BOT -> x
-  | Iv (a, b),Iv (c, d) -> Iv ((minval a c), (maxval c d))
   
-  let meet a b = match a,b with
-  | BOT,x | x,BOT -> BOT
-  | Iv (a, b),Iv (c, d) -> Iv ((maxval a c), (minval c d))
+
+let join x y = match x,y with
+  | BOT,a | a,BOT -> a
+  | Iv(a, b), Iv (c, d) -> Iv ((minval a c), (maxval b d))
   
+  let meet x y = match x,y with
+  | BOT,_ | _,BOT -> BOT
+  | Iv (a, b),Iv (c, d) -> if((gbis c b) || (gbis a d)) then BOT else Iv((maxval a c), (minval b d))
+
+let divbis x y =
+    match x,y with
+    |BOT,_ | _,BOT -> BOT
+    |Iv(a,b),Iv(c,d) -> Iv((minval (divaux a c) (divaux a d)) , (maxval (divaux b c) (divaux b d))) 
+(*must be something like when(gbis c Z.one ) ->// But I don't really know what's wrong because it don't work *)
 
 
   (* arithmetic operations *)
@@ -135,21 +144,12 @@ let join a b = match a,b with
   let modu = lift2 Z.rem
 
   let div a b =
-    join (divbis a (meet b (Iv (Cst Z.one,Pinf)))) (divbis a (meet b (Iv (Minf,Cst Z.minus_one))))
+     join (divbis a (meet b (Iv (Cst Z.one,Pinf)))) (divbis a (meet b (Iv (Minf,Cst Z.minus_one))))
+    
 
   (* set-theoretic operations *)
 
   
-  let gbis a c =
-    match a,c with
-    | x,y when x=y -> false
-    |Cst x, Cst y ->  if Z.compare x y > 0 then true else false
-    |Minf,x -> false
-    |x,Minf -> true
-    |x,Pinf-> false
-    |Pinf,x-> true
-
-
   let lbis b d =
     match b,d with
     |x,y when (x=y) -> false
