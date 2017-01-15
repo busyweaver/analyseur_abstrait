@@ -99,19 +99,15 @@ let rec rl f l def = match l with |[]->def |[z] -> z| z::zs -> f z (rl f zs def)
 
   let maxval a c =
     match a,c with
-    |Cst x, Cst y ->  if (Z.compare x y < 0) then Cst x else Cst y
-    |Minf,x -> x
-    |x,Minf -> x
-    |x,Pinf-> Pinf
-    |Pinf,x-> Pinf
+    |Cst x, Cst y ->  if (Z.compare x y < 0) then Cst y else Cst x
+    |Minf,x|x,Minf -> x
+    |_,Pinf|Pinf,_-> Pinf
 
   let minval a c =
     match a,c with
     |Cst x, Cst y ->  if (Z.compare x y < 0) then Cst x else Cst y
-    |Minf,x -> Minf
-    |x,Minf -> Minf
-    |x,Pinf-> x
-    |Pinf,x-> x
+    |Minf,_|_,Minf -> Minf
+    |x,Pinf|Pinf,x-> x
 
 let join a b = match a,b with
   | BOT,x | x,BOT -> x
@@ -134,7 +130,7 @@ let join a b = match a,b with
   let mul x y = 
 	match x,y with
 	| BOT,_|_,BOT -> BOT
-        | Iv (a,b),Iv (c,d)-> Iv (rl minval [mulbis a c;mulbis a d;mulbis b c;mulbis b d ] Minf,rl maxval [mulbis a c;mulbis a d;mulbis b c;mulbis b d ] Minf)
+        | Iv (a,b),Iv (c,d)-> Iv (rl minval [(mulbis a c);(mulbis a d); (mulbis b c); (mulbis b d) ] Pinf, rl maxval [(mulbis a c);(mulbis a d);(mulbis b c);(mulbis b d) ] Minf)
 
   let modu = lift2 Z.rem
 
