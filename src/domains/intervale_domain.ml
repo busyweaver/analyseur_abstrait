@@ -24,7 +24,7 @@ module Intervals = (struct
   (* type of abstract values *)
   type t =
     | Iv of aux*aux
-    | BOT         (* the set is empty (not reachable) *)
+    | BOT (* the set is empty (not reachable) *)
    
   (* utilities *)
   (* ********* *)
@@ -54,7 +54,6 @@ module Intervals = (struct
            |_ -> BOT)
        
              
-
   (* interface implementation *)
   (* ************************ *)
 
@@ -91,10 +90,10 @@ module Intervals = (struct
   
  let gbis a c =
     match a,c with
-    | Cst x,Cst y when x=y -> false
+    |x,y when (x=y) ->false
     |Cst x, Cst y ->  if Z.compare x y > 0 then true else false
-    |Minf,x|x,Pinf -> false
-    |Pinf,x|x,Minf -> true
+    |Minf,_|_,Pinf -> false
+    |Pinf,_|_,Minf -> true
  
     
 let rec rl f l def = match l with |[]->def |[z] -> z| z::zs -> f z (rl f zs def)
@@ -149,32 +148,27 @@ let divbis x y =
 
   (* set-theoretic operations *)
 
-  
+
   let lbis b d =
     match b,d with
     |x,y when (x=y) -> false
     |Cst x , Cst y ->  if Z.compare x y < 0 then true else false
-    |Minf,x-> true
-    |x,Minf -> false
-    |x,Pinf-> true
-    |Pinf,x-> false
+    |Minf,_|_,Pinf-> true
+    |_,Minf|Pinf,_ -> false
+
 
   let eqbis a c = 
     match a,c with
     | x,y when (x=y)-> true
     |Cst x , Cst y ->  if Z.compare x y = 0 then true else false
-    |Minf,x-> false
-    |x,Minf -> true
-    |x,Pinf-> false
-    |Pinf,x-> true
+    |Minf,_|_,Pinf-> false
+    |_,Minf|Pinf,_ -> true
 
   let plus_one x =
     match x with
     |Pinf -> Pinf
     |Minf -> Minf
     |Cst a -> Cst (Z.add a Z.one)
-
-
 
   let minus_one x =
     match x with
@@ -187,51 +181,67 @@ let divbis x y =
   let widen x y =
     match x,y with
     |BOT,_|_,BOT -> BOT
-    |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (not (lbis b d))) -> Iv(a,b)
+    |Iv(a,b), Iv (c,d) when ((lbis a c) && (gbis b d)) -> Iv(a,b)
     |Iv(a,b), Iv (c,d) when ((gbis a c) && (not (lbis b d)))  -> Iv(Minf,b)
     |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (lbis b d)) -> Iv(a,Pinf)
     |Iv(a,b), Iv (c,d) when ((gbis a c) && (lbis b d)) -> Iv(Minf,Pinf)
     |_ -> join x y
 
+   let add_simple a b=
+	match a,b with
+    |Cst x,Minf|Minf,Cst x -> Minf
+	|Pinf, Cst x|Cst x,Pinf -> Pinf
+    |Cst x,Cst y -> Cst (Z.add x y)
+    |_ -> failwith "Unhold in add_simple operation!"
+
+   let negbis a =
+	match a with 
+	|Cst x -> Cst (Z.neg x);
+	|Minf -> Pinf
+	|Pinf -> Minf
+
    let minus x y  = 
     match x,y with
     |BOT,_ | _,BOT -> BOT
-    |Iv(a,b),Iv(c,d) when (gbis c b) -> Iv (a,b)
-    |Iv(a,b),Iv(c,d) when (gbis a d) -> Iv (a,b)
-    |Iv(a,b),Iv(c,d) when ((lbis a c) && (gbis b d)) -> Iv (a,b)
+    |Iv(a,b),Iv(c,d) when ((gbis c b) || (gbis a d)) -> Iv (a,b)
     |Iv(a,b),Iv(c,d) when ((lbis c a) && (gbis d b)) -> BOT
-    |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(a, minus_one c)
+    |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(a, (minus_one c))
     |Iv(a,b),Iv(c,d) when (not(gbis a d)) -> Iv(plus_one c, b)
-    |_ ,_-> x
-      
+	|_ -> failwith "Unhold in minus operator!"
+
     
   (* comparison operations (filters) *)
 
   let eq a b =
-    meet a b,meet a b
+	let m = meet a b in
+    m, m
    
-let neq a b =
-  let z = meet a b in
-  minus a z,minus b z
+  let neq a b =
+  	let z = meet a b in
+  	minus a z,minus b z
 
+  let meet_strict x y=
+  match x, y with 
+  | BOT,_ | _,BOT -> BOT
+  | Iv (a, b),Iv (c, d) -> if((gbis c b) || (gbis a d)) then BOT else Iv((plus_one (maxval a c)), (minus_one (minval b d)))
 
-
-let gt x y =
+  let gt x y =
     match x,y with
     |BOT,_ | _,BOT -> BOT,BOT
     |Iv(a,b),Iv(c,d) when (gbis c b) -> BOT,BOT
     |Iv(a,b),Iv(c,d) when (gbis a d) -> Iv(a,b),Iv(c,d)
-    |Iv(a,b),Iv(c,d) when ((lbis a c) && (gbis b d)) ->Iv(plus_one c,b),Iv(c,d)
-    |Iv(a,b),Iv(c,d) when ((lbis c a) && (gbis d b)) -> Iv(a,b),Iv(c,minus_one b)
-    |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(plus_one c,b),Iv(c,minus_one b)
-    |Iv(a,b),Iv(c,d) when (not(gbis a d)) -> Iv(a,b),Iv(c,d) 
-    |_ ,_-> x,y
-      
+    |Iv(a,b),Iv(c,d) when ((gbis a c) && (gbis b d)) ->Iv(a,b),Iv(c,d)
+    |Iv(a,b),Iv(c,d) when ((gbis a c) && (gbis d b)) -> x, Iv(c, minus_one b)
+    |Iv(a,b),Iv(c,d) when ((gbis c a) && (gbis d b)) -> Iv(c,b),Iv(c,minus_one b) 
+    |Iv(a,b),Iv(c,d) when ((gbis c a) && (gbis b d)) -> Iv(c,b), Iv(c,d)	 
+    |_ ->failwith "Unhold case  in gt operation!"
+ 
+   
 let geq a b =
   let x = gt a b in
   let y = eq a b in
     join (fst x) (fst y),join (snd x) (snd y)
-  
+(*Seem not work as expected *)  
   
             
 
@@ -281,8 +291,7 @@ let geq a b =
   | AST_GREATER_EQUAL -> geq x y
   | AST_GREATER       -> gt x y
   | AST_LESS_EQUAL    -> let y',x' = geq y x in x',y'
-  | AST_LESS          -> let y',x' = gt y x in x',y'
-        
+  | AST_LESS          -> let y',x' = gt y x in x',y'   
 
 
   let bwd_unary x op r = match op with
