@@ -154,36 +154,59 @@ module Interprete(D : DOMAIN) =
         D.join t f
           
     | AST_while (e,s) ->
-        (* simple fixpoint *)
-        let rec fix (f:t -> t) (x:t) : t = 
-          let fx = f x in
-          if D.subset fx x then fx
-          else fix f fx
-        in
-        (* function to accumulate one more loop iteration:
-           F(X(n+1)) = X(0) U body(F(X(n)
-           we apply the loop body and add back the initial abstract state
-        *)        
-        let f x =
+      let rec fix  (x:t) c n : t =
+        let app =
           if(c=='d')
-          then
-            ( if(n>0)
-              then 
-                D.join a (eval_stat c (n-1) (filter x e true) s)
-              else
-                D.widen a (eval_stat c n (filter x e true) s))
-
+          then if (n>0)
+            then D.join a (eval_stat c n (filter x e true) s)
+            else D.widen a (eval_stat c n (filter x e true) s)
           else if(c=='u')
-          then(if(n>0)
-               then (eval_stat c (n-1) (filter x e true) s)
-              else D.widen a (eval_stat c n (filter x e true) s))
-            
+          then if(n>0)
+              then (eval_stat c n (filter x e true) s)
+              else  D.widen a (eval_stat c n (filter x e true) s)
           else
-            D.widen a (eval_stat c n (filter x e true) s)
+            D.widen a (eval_stat c n (filter x e true) s) 
+        in
+        let new_n =
+          if(c=='d') then n-1
+          else if(c=='u')
+          then n-1
+          else n
+        in
+          if D.subset app x then app
+          else fix app c new_n
 
-              in
+      in
+        (* simple fixpoint *)
+        (* let rec fix (f:t -> t) (x:t) : t =  *)
+        (*   let fx = f x in *)
+        (*   if D.subset fx x then fx *)
+        (*   else fix f fx *)
+        (* in *)
+        (* (\* function to accumulate one more loop iteration: *)
+        (*    F(X(n+1)) = X(0) U body(F(X(n) *)
+        (*    we apply the loop body and add back the initial abstract state *)
+        (* *\)         *)
+        (* let f x = *)
+        (*   if(c=='d') *)
+        (*   then *)
+        (*     ( if(n>0) *)
+        (*       then  *)
+        (*         D.join a (eval_stat c (n-1) (filter x e true) s) *)
+        (*       else *)
+        (*         D.widen a (eval_stat c n (filter x e true) s)) *)
+
+        (*   else if(c=='u') *)
+        (*   then(if(n>0) *)
+        (*        then (eval_stat c (n-1) (filter x e true) s) *)
+        (*       else D.widen a (eval_stat c n (filter x e true) s)) *)
+            
+        (*   else *)
+        (*     D.widen a (eval_stat c n (filter x e true) s) *)
+
+        (*       in *)
         (* compute fixpoint from the initial state (i.e., a loop invariant) *)
-        let inv = fix f a in
+        let inv = fix a c n in
         (* and then filter by exit condition *)
         filter inv e false
 
