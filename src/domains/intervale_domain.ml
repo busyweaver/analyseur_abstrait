@@ -179,20 +179,21 @@ let divbis x y =
   
   (* needs to be implemented *)
   let widen x y =
-    match x,y with
+    match x,y with    
     |BOT,_|_,BOT -> BOT
     |Iv(a,b), Iv (c,d) when ((lbis a c) && (gbis b d)) -> Iv(a,b)
-    |Iv(a,b), Iv (c,d) when ((gbis a c) && (not (lbis b d)))  -> Iv(Minf,b)
-    |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (lbis b d)) -> Iv(a,Pinf)
-    |Iv(a,b), Iv (c,d) when ((gbis a c) && (lbis b d)) -> Iv(Minf,Pinf)
+    |Iv(a,b), Iv (c,d) when ((not(lbis a c)) && (gbis b d))  -> Iv(Minf,b)
+    |Iv(a,b), Iv (c,d) when ((lbis a c) && (not(gbis b d))) -> Iv(a,Pinf)
+    |Iv(a,b), Iv (c,d) when ((not(lbis a c)) && (not(gbis b d))) -> Iv(Minf,Pinf)
     |_ -> join x y
+
 
    let add_simple a b=
 	match a,b with
     |Cst x,Minf|Minf,Cst x -> Minf
 	|Pinf, Cst x|Cst x,Pinf -> Pinf
     |Cst x,Cst y -> Cst (Z.add x y)
-    |_ -> failwith "Unhold in add_simple operation!"
+    |_ -> failwith "Unhold in case add_simple operation!"
 
    let negbis a =
 	match a with 
@@ -207,7 +208,7 @@ let divbis x y =
     |Iv(a,b),Iv(c,d) when ((lbis c a) && (gbis d b)) -> BOT
     |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(a, (minus_one c))
     |Iv(a,b),Iv(c,d) when (not(gbis a d)) -> Iv(plus_one c, b)
-	|_ -> failwith "Unhold in minus operator!"
+	|_ -> failwith "Unhold case in minus operator!"
 
     
   (* comparison operations (filters) *)
@@ -234,7 +235,7 @@ let divbis x y =
     |Iv(a,b),Iv(c,d) when ((gbis a c) && (gbis d b)) -> x, Iv(c, minus_one b)
     |Iv(a,b),Iv(c,d) when ((gbis c a) && (gbis d b)) -> Iv(c,b),Iv(c,minus_one b) 
     |Iv(a,b),Iv(c,d) when ((gbis c a) && (gbis b d)) -> Iv(c,b), Iv(c,d)	 
-    |_ ->failwith "Unhold case  in gt operation!"
+    |_ ->x,y
  
    
 let geq a b =
