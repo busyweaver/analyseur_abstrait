@@ -179,13 +179,15 @@ let divbis x y =
   
   (* needs to be implemented *)
   let widen x y =
-    match x,y with    
-    |BOT,_|_,BOT -> BOT
-    |Iv(a,b), Iv (c,d) when ((lbis a c) && (gbis b d)) -> Iv(a,b)
-    |Iv(a,b), Iv (c,d) when ((not(lbis a c)) && (gbis b d))  -> Iv(Minf,b)
-    |Iv(a,b), Iv (c,d) when ((lbis a c) && (not(gbis b d))) -> Iv(a,Pinf)
-    |Iv(a,b), Iv (c,d) when ((not(lbis a c)) && (not(gbis b d))) -> Iv(Minf,Pinf)
-    |_ -> join x y
+     match x,y with
+     |BOT,x|x,BOT -> x
+     |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (not (lbis b d))) -> Iv(a,b)
+     |Iv(a,b), Iv (c,d) when ((gbis a c) && (not (lbis b d)))  -> Iv(Minf,b)
+     |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (lbis b d)) -> Iv(a,Pinf)
+     |Iv(a,b), Iv (c,d) when ((gbis a c) && (lbis b d)) -> Iv(Minf,Pinf)
+     |_ -> join x y
+
+  
 
 
    let add_simple a b=
