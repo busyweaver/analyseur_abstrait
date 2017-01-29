@@ -18,6 +18,16 @@ module IntervaleAnalysis =
     (Non_relational_domain.NonRelational
        (Intervale_domain.Intervals))
 
+module ParityAnalysis =
+  Interpreter.Interprete
+    (Non_relational_domain.NonRelational
+       (Parite_domain.Parity))
+
+
+module ProduitAnalysis =
+  Interpreter.Interprete
+    (Non_relational_domain.NonRelational
+       (Produitreduit.Produitreduit))
 
 
 (* parse and print filename *)
@@ -41,8 +51,11 @@ let main () =
      "-concrete", Arg.Unit (fun () -> action := ConcreteAnalysis.eval_prog 'a' 0),"";
      "-constant", Arg.Unit (fun () -> action := ConstantAnalysis.eval_prog 'a' 0),"";
      "-interval", Arg.Unit (fun () -> action := IntervaleAnalysis.eval_prog 'a' 0),"";
+     "-extsingle", Arg.Unit (fun () -> action := IntervaleAnalysis.eval_prog 'e' 0),"";
      "-delay", Arg.Int (fun (n) -> action := IntervaleAnalysis.eval_prog 'd' n),"";
      "-unroll", Arg.Int (fun (n) -> action := IntervaleAnalysis.eval_prog 'u' n),"";
+      "-reduit", Arg.Int (fun (n) -> action := ProduitAnalysis.eval_prog 'u' n),"";
+   
      
    ]
     (* handle filenames *)

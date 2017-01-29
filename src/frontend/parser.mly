@@ -19,6 +19,8 @@ open Abstract_syntax_tree
 /* tokens */
 /**********/
 
+%token TOK_LBRACKET
+%token TOK_RBRACKET
 %token TOK_INT
 %token TOK_TRUE
 %token TOK_FALSE
@@ -158,7 +160,9 @@ int_expr:
            TOK_COMMA  e2=ext(sign_int_literal) TOK_RPAREN
     { AST_rand (e1, e2) }
 
-
+| v=ext(TOK_id) TOK_LBRACKET e=ext(int_expr) TOK_RBRACKET
+    {AST_array_id (v ,e)}
+    
 // integer with optional sign, useful for TOK_RAND
 sign_int_literal:
 | i=TOK_int            { i }
@@ -176,8 +180,8 @@ block:
 
 // a declaration, simply "int x;"
 decl:
-| t=typ v=TOK_id TOK_SEMICOLON { t, v }
-
+| t=typ v=TOK_id TOK_SEMICOLON { t, v, "0"}
+| t=typ v=TOK_id TOK_LBRACKET e=TOK_int TOK_RBRACKET  TOK_SEMICOLON {t,v,e}
 // we only support integer types for now    
 typ:
 | TOK_INT { AST_INT }    
@@ -187,8 +191,9 @@ stat:
 | l=block                     
   { AST_block (fst l, snd l) }
 
-| e=ext(TOK_id) TOK_EQUAL f=ext(int_expr) TOK_SEMICOLON
-  { AST_assign (e, f) }
+| e=ext(TOK_id) TOK_EQUAL f=ext(int_expr) TOK_SEMICOLON { AST_assign (e, f) }
+| e=ext(TOK_id) TOK_LBRACKET  f1=ext(int_expr)  TOK_RBRACKET TOK_EQUAL f2=ext(int_expr) TOK_SEMICOLON
+  { AST_assign_array (e, f1,f2 ) }
 
 | TOK_IF TOK_LPAREN e=ext(bool_expr) TOK_RPAREN s=ext(stat)
   { AST_if (e, s, None) }

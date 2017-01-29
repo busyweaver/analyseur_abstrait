@@ -12,7 +12,7 @@ open Abstract_syntax_tree
 open Value_domain
 
   
-module Constants = (struct
+module Parity = (struct
 
   
   (* types *)
@@ -44,7 +44,7 @@ module Constants = (struct
     match x,y with
     | BOT,_ | _,BOT -> BOT
     | TOP,_ | _,TOP -> TOP
-    | Even,Odd| Even,Odd -> Odd
+    | Even,Odd| Odd,Even -> Odd
     | Even,Even -> Even
     | Odd,Odd-> Even
           
@@ -63,11 +63,12 @@ module Constants = (struct
   let bottom = BOT
 
   (* constant *)
-  let const c = Cst c
+  let const x = if (Z.equal (Z.erem x (Z.of_string "2")) Z.one ) then Odd else Even
 
-  (* interval *)
+                 (* interval *)
+                 
   let rand x y =
-    if x=y then (if (Z.equal (Z.erem x y) 1 ) Odd else Even )  
+    if (x=y) then (if (Z.equal (Z.erem x (Z.of_string "2")) Z.one ) then Odd else Even )  
     else TOP
 
 
@@ -79,31 +80,27 @@ module Constants = (struct
 
   let sub = lift2 Z.sub
 
-  let mul x y = 
-	match x,y with
-	| TOP, Cst a |Cst a, TOP when  a= Z.zero -> Cst Z.zero
-	| _ -> lift2 Z.mul x y
+  let mul = lift2 Z.mul 
+  (*       match x,y with *)
+  (*       | TOP, Cst a |Cst a, TOP when  a= Z.zero -> Cst Z.zero *)
+  (*       | _ -> lift2 Z.mul x y *)
+
+  (* let modu = lift2 Z.rem *)
+
+  let div  = lift2 Z.div
+    (* if b = Cst Z.zero then BOT *)
+    (* else lift2 Z.div a b *)
+
 
   let modu = lift2 Z.rem
 
-  let div a b =
-    if b = Cst Z.zero then BOT
-    else lift2 Z.div a b
-
-
   (* set-theoretic operations *)
   
-  let join a b =
-   match a,b with
-  | BOT,x | x,BOT -> x
-  | Cst x, Cst y when x=y -> a
-  | _ -> TOP
+  let join a b = a 
+  
 
-  let meet a b = match a,b with
-  | TOP,x | x,TOP -> x
-  | Cst x, Cst y when x=y -> a
-  | _ -> BOT
-
+  let meet a b = a
+ 
 
   (* no need for a widening as the domain has finite height; we use the join : Pas besoin d'un elargissement *)
   let widen = join
@@ -111,48 +108,30 @@ module Constants = (struct
 
   (* comparison operations (filters) *)
 
-  let eq a b =	
-    match a, b with
-    | Cst x, TOP| TOP, Cst x -> Cst x , Cst x
-    | Cst x, BOT| BOT, Cst x -> BOT, BOT
-    | Cst x, Cst y when Z.compare x y =0 -> Cst x, Cst x (* Proposition de correction *)
-    | _ -> BOT, BOT
-
+  let eq a b =	 a,b
+ 
 (*let nenv= meet a b in
     nenv, nenv*)
 
-  let neq a b =
-    match a,b with
-	|Cst x, Cst y when Z.compare x y =0 -> BOT,BOT
- 	|_ -> a,b
-
-  let geq a b = match a, b with
-	| Cst x, Cst y when Z.compare x y >= 0 -> a,b
-	| TOP, _|_,TOP -> a, b
-	| Cst x, BOT-> Cst x,BOT
-	| _ -> BOT, BOT 
-      
-  let gt a b = match a, b with
-	| Cst x, Cst y when Z.compare x y > 0 -> a, b
-	| TOP, Cst x -> TOP, Cst x
-	| Cst x, BOT -> Cst x, BOT
-	| _ -> BOT, BOT
-
+  let neq a b = a,b
+  
+  let geq a b = a,b
+    
+  let gt a b = a,b
+   
   (* subset inclusion of concretizations *)
-  let subset a b = match a,b with
-  | BOT,_ | _,TOP -> true
-  | Cst x, Cst y -> x=y
-  | _ -> false
-
+  let subset a b = true
+  
   (* check the emptyness of the concretization *)
-  let is_bottom a =
-    a=BOT
+  let is_bottom a = true
+  
 
   (* prints abstract element *)
   let print fmt x = match x with
   | BOT -> Format.fprintf fmt "bottom"
   | TOP -> Format.fprintf fmt "top"
-  | Cst x -> Format.fprintf fmt "{%s}" (Z.to_string x)
+  | Odd -> Format.fprintf fmt "Odd"
+  | Even -> Format.fprintf fmt "Even"
 
 
   (* operator dispatch *)
@@ -168,7 +147,7 @@ module Constants = (struct
   | AST_MODULO -> modu x y
   | AST_DIVIDE   -> div x y
 
-  let compare x y op = match op with
+  let compare (x:t) (y:t) op = match op with
   | AST_EQUAL         -> eq x y
   | AST_NOT_EQUAL     -> neq x y
   | AST_GREATER_EQUAL -> geq x y
@@ -204,9 +183,12 @@ module Constants = (struct
         
   | AST_DIVIDE ->
       (* this is sound, but not precise *)
-      TOP, TOP (* A implementer *)
+    TOP, TOP (* A implementer *)
+
+
+  let concrete x = []
         
       
-end : VALUE_DOMAIN)
+end)
 
     

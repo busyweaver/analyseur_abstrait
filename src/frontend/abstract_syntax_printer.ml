@@ -131,7 +131,7 @@ let rec print_int_expr fmt e =
       Format.fprintf fmt "rand(%s,%s)" i1 i2
         
   | AST_identifier (v,_) -> print_var fmt v
-
+  | AST_array_id ((v,_),(i,_)) -> (print_var fmt v); Format.fprintf fmt "[ %a ]"  print_int_expr i 
         
 and print_bool_expr fmt e = 
   match e with
@@ -180,6 +180,10 @@ let rec print_stat ind fmt = function
       Format.fprintf fmt "%s%a = %a;@\n" 
         ind print_var v print_int_expr e
 
+| AST_assign_array ((v,_),(e1,_), (e2,_)) ->
+      Format.fprintf fmt "%s%a [%a]= %a;@\n" 
+        ind print_var v print_int_expr e1 print_int_expr e2
+
   | AST_if ((e,_), (b1,_), None) ->
       Format.fprintf fmt "%sif (%a)@\n%a" 
         ind print_bool_expr e (print_stat (indent ind)) b1
@@ -207,8 +211,13 @@ let rec print_stat ind fmt = function
 and print_block ind fmt decl inst =
   Format.fprintf fmt "%s{@\n" ind;
   List.iter
-    (fun ((t,v),_) ->
-      Format.fprintf fmt "%s%a %a;@\n" (indent ind) print_typ t print_var v
+    (fun ((t,v,s),_) ->
+       if((int_of_string s) =0)
+         then
+           Format.fprintf fmt "%s%a %a;@\n" (indent ind) print_typ t print_var v
+         else
+            Format.fprintf fmt "%s%a %a[%a];@\n" (indent ind) print_typ t print_var v   print_var s
+           
     ) decl;
   List.iter (fun (bb,_) -> print_stat (indent ind) fmt bb) inst;
   Format.fprintf fmt "%s}@\n" ind

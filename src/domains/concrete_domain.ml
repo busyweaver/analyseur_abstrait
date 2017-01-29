@@ -100,11 +100,16 @@ module Concrete = (struct
           s1
           s2
 
-    | AST_identifier (v,_) ->
+    | AST_identifier (v,ext) ->
         (* value of the variable in the environment: a singleton *)
         ValSet.singleton (Env.find v m)
-          
-    | AST_int_const (s,_) ->
+
+    | AST_array_id ((v,ext),(i,_))->
+      let res = eval_expr i m in
+      ValSet.fold (fun x  acc->ValSet.union (eval_expr (AST_identifier ((String.concat "" [v;"[";(Z.to_string x);"]"]),ext)) m) acc) res ValSet.empty
+
+    | AST_int_const (s,ez) ->
+     
         (* constant: a singleton *)
         ValSet.singleton (Z.of_string s)
 
@@ -160,7 +165,7 @@ module Concrete = (struct
       
   (* add a variable *)
   let add_var m v =
-    env_set_map (Env.add v Z.zero) m
+        env_set_map (Env.add v Z.zero) m
       
   (* remove a variable *)
   let del_var m v =
@@ -180,7 +185,33 @@ module Concrete = (struct
           ) s acc
       ) m EnvSet.empty
 
+let assign_array  a var e1 e2 = 
+  (* for each environment *)
+  EnvSet.fold
+    (fun env acc ->
 
+       (* for each possible value in the environment *)
+       let s = eval_expr e2 env in
+       ValSet.fold
+         (fun v acc ->
+
+            let ind = eval_expr e1 env in
+            ValSet.fold
+              (fun ina acc ->
+                 let index = String.concat "" [var;"["; (Z.to_string ina);"]"] in
+
+
+
+                 (* create a new, updated environment *)
+                 EnvSet.add (Env.add index v env) acc
+              ) ind acc
+         ) s acc
+    ) a EnvSet.empty
+
+
+
+
+  
   (* filter environments to keep only those satisfying the comparison *)
   let compare m e1 op e2 =
     EnvSet.filter (fun env -> eval_compare e1 op e2 env) m

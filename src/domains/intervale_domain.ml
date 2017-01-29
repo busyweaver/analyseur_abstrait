@@ -29,6 +29,22 @@ module Intervals = (struct
   (* utilities *)
   (* ********* *)
 
+  let print_rest r = 
+   match r with
+	| Pinf -> "+inf"
+	| Minf -> "-inf"
+	| Cst x -> Z.to_string x
+
+  
+let print_v x = match x with
+  | BOT ->  print_string "bottom\n"
+  | Iv (r , s) -> let p1 = print_rest r in
+		let p2 = print_rest s in
+    print_string (  String.concat "" [
+        "iv [" ; p1 ; ", "; p2 ;" ]\n"
+      ] )			
+
+
   (* lift unary arithmetic operations, from integers to t *)
   let lift1 f x =
     match x with
@@ -100,21 +116,22 @@ let rec rl f l def = match l with |[]->def |[z] -> z| z::zs -> f z (rl f zs def)
 
   let maxval a b =
     match a,b with
-    |Cst x, Cst y ->  if (Z.compare x y >0) then Cst x else Cst y
+    |Cst x, Cst y ->  if (Z.compare x y > 0) then Cst x else Cst y
     |Minf,x|x,Minf -> x
     |_,Pinf|Pinf,_-> Pinf
 
   let minval a b =
     match a,b with
-    |Cst x, Cst y ->  if (Z.compare x y <0) then Cst x else Cst y
+    |Cst x, Cst y ->  if (Z.compare x y < 0) then Cst x else Cst y
     |Minf,_|_,Minf -> Minf
     |x,Pinf|Pinf,x-> x
 
   
 
-let join x y = match x,y with
+  let join x y = (print_string "join\n";print_v x; print_v y;
+                  (match x,y with
   | BOT,a | a,BOT -> a
-  | Iv(a, b), Iv (c, d) -> Iv ((minval a c), (maxval b d))
+  | Iv(a, b), Iv (c, d) -> Iv ((minval a c), (maxval b d))))
   
   let meet x y = match x,y with
   | BOT,_ | _,BOT -> BOT
@@ -135,10 +152,17 @@ let divbis x y =
 
   let sub = lift2 Z.sub
 
-  let mul x y = 
+
+   let mul x y = 
 	match x,y with
 	| BOT,_|_,BOT -> BOT
-        | Iv (a,b),Iv (c,d)-> Iv (rl minval [(mulbis a c);(mulbis a d); (mulbis b c); (mulbis b d) ] Pinf, rl maxval [(mulbis a c);(mulbis a d);(mulbis b c);(mulbis b d) ] Minf)
+        | Iv (a,b),Iv (c,d)-> Iv (rl minval [mulbis a c;mulbis a d;mulbis b c;mulbis b d ] Minf,rl maxval [mulbis a c;mulbis a d;mulbis b c;mulbis b d ] Minf)
+
+  
+  (* let mul x y =  *)
+  (*       match x,y with *)
+  (*       | BOT,_|_,BOT -> BOT *)
+  (*       | Iv (a,b),Iv (c,d)-> Iv (rl minval [(mulbis a c);(mulbis a d); (mulbis b c); (mulbis b d) ] Pinf, rl maxval [(mulbis a c);(mulbis a d);(mulbis b c);(mulbis b d) ] Minf) *)
 
   let modu = lift2 Z.rem
 
@@ -178,14 +202,14 @@ let divbis x y =
   
   
   (* needs to be implemented *)
-  let widen x y =
+  let widen x y =  (print_string "widen!!\n";print_v x;print_v y;
      match x,y with
      |BOT,x|x,BOT -> x
      |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (not (lbis b d))) -> Iv(a,b)
      |Iv(a,b), Iv (c,d) when ((gbis a c) && (not (lbis b d)))  -> Iv(Minf,b)
      |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (lbis b d)) -> Iv(a,Pinf)
      |Iv(a,b), Iv (c,d) when ((gbis a c) && (lbis b d)) -> Iv(Minf,Pinf)
-     |_ -> join x y
+     |_ -> join x y)
 
   
 
@@ -228,17 +252,21 @@ let divbis x y =
   | BOT,_ | _,BOT -> BOT
   | Iv (a, b),Iv (c, d) -> if((gbis c b) || (gbis a d)) then BOT else Iv((plus_one (maxval a c)), (minus_one (minval b d)))
 
-  let gt x y =
-    match x,y with
-    |BOT,_ | _,BOT -> BOT,BOT
-    |Iv(a,b),Iv(c,d) when (gbis c b) -> BOT,BOT
-    |Iv(a,b),Iv(c,d) when (gbis a d) -> Iv(a,b),Iv(c,d)
-    |Iv(a,b),Iv(c,d) when ((gbis a c) && (gbis b d)) ->Iv(a,b),Iv(c,d)
-    |Iv(a,b),Iv(c,d) when ((gbis a c) && (gbis d b)) -> x, Iv(c, minus_one b)
-    |Iv(a,b),Iv(c,d) when ((gbis c a) && (gbis d b)) -> Iv(c,b),Iv(c,minus_one b) 
-    |Iv(a,b),Iv(c,d) when ((gbis c a) && (gbis b d)) -> Iv(c,b), Iv(c,d)	 
-    |_ ->x,y
- 
+  let gt x y = (print_string "greater_than\n";print_v x;print_v y;
+                match x,y with
+
+                |BOT,_ | _,BOT -> BOT,BOT
+                |Iv(a,b),Iv(c,d) when (gbis c b) -> BOT,BOT
+                |Iv(a,b),Iv(c,d) when (gbis a d) -> Iv(a,b),Iv(c,d)
+                |Iv(a,b),Iv(c,d) when ((lbis a c) && (gbis b d)) ->Iv(plus_one c,b),Iv(c,d)
+                |Iv(a,b),Iv(c,d) when ((lbis c a) && (gbis d b)) -> Iv(a,b),Iv(c,minus_one b)
+                |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(plus_one c,b),Iv(c,minus_one b)
+                |Iv(a,b),Iv(c,d) when (not(gbis a d)) -> Iv(a,b),Iv(c,d) 
+                |_ ,_-> x,y)
+
+
+
+
    
 let geq a b =
   let x = gt a b in
@@ -260,11 +288,6 @@ let geq a b =
     a=BOT
 
 
-  let print_rest r = 
-   match r with
-	| Pinf -> "+inf"
-	| Minf -> "-inf"
-	| Cst x -> Z.to_string x
 
   (* prints abstract element *)
   let print fmt x = match x with
@@ -272,6 +295,8 @@ let geq a b =
   | Iv (r , s) -> let p1 = print_rest r in
 		let p2 = print_rest s in
 			Format.fprintf fmt "iv [%s , %s]" p1 p2			
+
+
 
   
 
@@ -323,9 +348,29 @@ let geq a b =
         
   | AST_DIVIDE ->
       (* this is sound, but not precise *)
-      x, y
+    x, y
+
+
+  let concrete e =
+    match e with
+    |BOT -> []
+    |Iv (a,b) ->
+      match a,b with
+      |Cst x,Cst y ->
+        let (r,s) = (int_of_string (Z.to_string x),int_of_string (Z.to_string y)) in
+        let rec f r s acc =
+          if(r>s)
+          then
+            acc
+          else
+            f (r+1) s (r::acc)
+        in
+        (f r s [])
+      |_,_ -> failwith "concrete not supported"
         
+        
+       
       
-end : VALUE_DOMAIN)
+end )
 
     

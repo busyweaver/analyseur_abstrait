@@ -60,10 +60,12 @@ let const_int = int_bin | int_oct | int_dec | int_hex
 rule token = parse
 
 (* identifier (TOK_id) or reserved keyword *)
-| ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* as id
+| ['a'-'z' 'A'-'Z' '_' ] ['a'-'z' 'A'-'Z' '0'-'9' '_']* as id
 { try Hashtbl.find kwd_table id with Not_found -> TOK_id id }
 
 (* symbols *)
+| "["    { TOK_LBRACKET}
+| "]"    { TOK_RBRACKET}  
 | "("    { TOK_LPAREN }
 | ")"    { TOK_RPAREN }
 | "{"    { TOK_LCURLY }

@@ -82,6 +82,7 @@ type int_expr =
 
   (* variable use *)
   | AST_identifier of var ext
+  | AST_array_id of (var ext) * (int_expr ext)
 
   (* constants (integers are still in their string representation) *)
   | AST_int_const of string ext
@@ -108,10 +109,11 @@ type bool_expr =
 type stat =
 
   (* block of statements { declarations; statements;  } *)
-  | AST_block of (((typ * var) ext) list) * ((stat ext) list)
+  | AST_block of (((typ * var * string) ext) list) * ((stat ext) list)
 
   (* assignment of integer expression: var = expr *)
   | AST_assign of (var ext) * (int_expr ext)
+  | AST_assign_array  of (var ext) * (int_expr ext) * (int_expr ext)
 
   (* if-then-else, with boolean condition;
      the else branch is optional 

@@ -202,7 +202,15 @@ module Constants = (struct
   | AST_DIVIDE ->
       (* this is sound, but not precise *)
       TOP, TOP (* A implementer *)
-        
+
+
+
+  let concrete e =
+    match e with
+    | Cst x -> let r = int_of_string (Z.to_string x) in [r]
+    | BOT -> []
+    | _ -> failwith "concrete not supported"
+
       
 end : VALUE_DOMAIN)
 

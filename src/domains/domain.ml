@@ -26,13 +26,15 @@ module type DOMAIN =
     val bottom: unit -> t
 
     (* add a variable *)
-    val add_var: t -> var -> t
+    val add_var: t -> var  -> t
 
     (* remove a variable *)
-    val del_var: t -> var -> t    
+    val del_var: t -> var  -> t    
         
     (* assign an integer expression to a variable *)
     val assign: t -> var -> int_expr -> t
+
+    val assign_array:  t -> var ->int_expr -> int_expr -> t
 
     (* filter environments to keep only those satisfying the comparison //Filtrer les environements pour ne laisser que ceux satisfaisant une condition donnée *)
     val compare: t -> int_expr -> compare_op -> int_expr -> t

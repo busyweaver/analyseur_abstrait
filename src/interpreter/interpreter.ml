@@ -74,7 +74,7 @@ module Interprete(D : DOMAIN) =
    *)
   type t = D.t
 
-        
+       
   (* utility function to reduce the compexity of testing boolean expressions;
      it handles the boolean operators &&, ||, ! internally, by induction
      on the syntax, and call the domain's function D.compare, to handle
@@ -125,19 +125,43 @@ module Interprete(D : DOMAIN) =
         (* add the local variables *)
         let a =
           List.fold_left
-            (fun a ((_,v),_) -> D.add_var a v)
+            (fun a ((_,v,s1),_) -> let size = int_of_string s1 in
+              if(size==0)
+              then
+                D.add_var a v
+              else
+                (* type d extension*)
+              if (c=='e')
+              then (* extension with one stored value*)
+                D.assign (D.add_var  (D.add_var a (String.concat "" [v;"[";"*";"]"])) v) v (AST_int_const (string_of_int (size-1),ext))
+              else (*extension with independent values on indeces*)
+                
+                let rec f v size a =
+                match size with
+                |0 -> D.assign (D.add_var  a v) v (AST_int_const (string_of_int (size-1),ext))
+                |n-> f v (n-1) (D.add_var a (String.concat "" [v;"[";(string_of_int (size-1));"]"]))
+                in
+                (f v size a)
+                
+            )  
             a decl
         in
         (* interpret the block recursively *)
+
         let a = List.fold_left (eval_stat c n) a inst in
+        
         (* destroy the local variables *)
         List.fold_left
-          (fun a ((_,v),_) -> D.del_var a v)
+          (fun a ((_,v,s),_) -> D.del_var a v)
           a decl
         
-    | AST_assign ((i,_),(e,_)) ->
+    | AST_assign ((i,_),(e,_)) ->(print_string "assign";
         (* assigment is delegated to the domain *)
-        D.assign a i e
+               D.assign a i e)
+
+   | AST_assign_array ((i,_),(e1,_),(e2,_)) ->(print_string "assign array";
+        (* assigment is delegated to the domain *)
+        D.assign_array  a i e1 e2)
           
     | AST_if (e,s1,Some s2) ->
         (* compute both branches *)
@@ -145,7 +169,6 @@ module Interprete(D : DOMAIN) =
         let f = eval_stat c n (filter a e false) s2 in
         (* then join *)
         D.join t f
-          
     | AST_if (e,s1,None) ->
         (* compute both branches *)
         let t = eval_stat c n (filter a e true ) s1 in
@@ -155,26 +178,25 @@ module Interprete(D : DOMAIN) =
           
     | AST_while (e,s) ->
       let rec fix  (x:t) c n : t =
+        (print_string "loop!!\n";
         let app =
           if(c=='d')
           then if (n>0)
-            then D.join a (eval_stat c n (filter x e true) s)
-            else D.widen a (eval_stat c n (filter x e true) s)
+            then D.join x (eval_stat c n (filter x e true) s)
+            else D.widen x (eval_stat c n (filter x e true) s)
           else if(c=='u')
           then if(n>0)
               then (eval_stat c n (filter x e true) s)
-              else  D.widen a (eval_stat c n (filter x e true) s)
+              else  D.widen x (eval_stat c n (filter x e true) s)
           else
-            D.widen a (eval_stat c n (filter x e true) s) 
+            (print_string "hey"; D.join x (eval_stat c n (filter x e true) s) )
         in
         let new_n =
-          if(c=='d') then n-1
-          else if(c=='u')
-          then n-1
+          if(c=='d' || c=='u') then n-1
           else n
         in
           if D.subset app x then app
-          else fix app c new_n
+          else fix app c new_n)
 
       in
         (* simple fixpoint *)
@@ -206,9 +228,11 @@ module Interprete(D : DOMAIN) =
 
         (*       in *)
         (* compute fixpoint from the initial state (i.e., a loop invariant) *)
-        let inv = fix a c n in
+      let inv = fix a c n 
+      in
         (* and then filter by exit condition *)
-        filter inv e false
+      (*filter inv e false*)
+      inv
 
     | AST_assert e ->
         let nenv = filter a e false in
@@ -236,6 +260,7 @@ module Interprete(D : DOMAIN) =
         (string_of_extent ext) D.print_all r;
     r
       
+
 
   (* entry-point of the program analysis *)
   let rec eval_prog (c:char) (n:int) (l:prog)  : unit =

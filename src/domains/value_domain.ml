@@ -27,6 +27,7 @@ module type VALUE_DOMAIN =
     (* constant: {c} *)
     val const: Z.t -> t
 
+    
     (* interval: [a,b] *)
     val rand: Z.t -> Z.t -> t
 
@@ -97,6 +98,8 @@ module type VALUE_DOMAIN =
        let bwd_binay x y _ _ = (x,y)
       *)
     val bwd_binary: t -> t -> int_binary_op -> t -> (t * t)
+
+    val concrete: t -> (int list)
   
 end
       

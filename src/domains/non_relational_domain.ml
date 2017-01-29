@@ -57,6 +57,7 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
     | A_binary of int_binary_op * atree * V.t * atree * V.t
     | A_var of var * V.t
     | A_cst of V.t
+    | A_array of var*(atree list)*V.t
         
 
   (* evaluates an integer expression, by calling the abstract operator from V;
@@ -81,6 +82,33 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
         let v = VarMap.find var m in
         A_var (var, v),
         v
+
+    | AST_array_id((v,_),(i,ext)) ->
+      let tr,res = eval m i in
+      let dom = (V.rand (Z.of_string "0") (Z.of_string (string_of_int (List.hd (V.concrete(VarMap.find v  m)))))) in
+      let verif = if (V.subset res dom)
+        then res
+        else
+         ( print_string (String.concat "" ["\n Index may be out of bound for array ";v;"\n"]); V.meet res dom )
+
+      in
+      let exten = try (VarMap.find  (String.concat "" [v;"[*]"])  m) with
+        |Not_found -> V.bottom
+        
+
+      in
+      if(not (V.is_bottom exten))
+      then
+        
+        A_array(v,[],exten),exten
+      else
+        
+      let l = (List.map (fun x ->  (eval m (AST_identifier (String.concat "" [v;"[";(string_of_int x);"]"],ext)))) (V.concrete verif)) in
+      let va = List.fold_left (fun x acc -> V.join x acc) V.bottom (List.map (fun x -> snd x) l) in
+      (* let z = (List.map (fun x ->  fst (eval m (AST_identifier (String.concat "" [v;"[";(string_of_int x);"]"],ext)))) (V.concrete res)) in*)
+      let z = List.map (fun x -> fst x) l in
+        A_array (v,z,va), va
+        
           
     | AST_int_const (c,_) ->
         let v = V.const (Z.of_string c) in
@@ -123,6 +151,11 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
         (* test for satisfiability *)
         if V.is_bottom (V.meet v r) then raise Empty;
         m
+    | A_array (var,l,v) -> m(*  let dom = (V.rand (Z.of_string "0") (Z.of_string (string_of_int (List.hd (V.concrete(VarMap.find var  m)))))) in *)
+      (* if (V.subset v dom) *)
+      (* then m *)
+      (*   else (print_string "safety not guarenteed for arrays integer expression"; V.meet v dom) *)
+        
 
 
   (* implements the comparison
@@ -173,6 +206,42 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
       if V.is_bottom v then BOT
       else Val (VarMap.add var v m)
 
+  let assign_array a var e1 e2 =match a with
+      | BOT -> BOT
+      | Val m ->
+        let _,v = eval m e2 in
+        let _,ind = eval m e1 in
+        if (V.is_bottom v || V.is_bottom ind)  then BOT
+        else
+      let dom = (V.rand (Z.of_string "0") (Z.of_string (string_of_int (List.hd (V.concrete(VarMap.find var  m)))))) in
+      let verif = if (V.subset ind dom)
+        then ind
+        else
+          ( print_string (String.concat "" ["\n Index may be out of bound for array ";var;"\n"]);
+            let dom_ok = V.meet ind dom in
+            if (V.is_bottom dom_ok) then failwith "Trying to write on unreachable index"
+                else dom_ok
+          )
+      in
+      (* type of extension*)
+
+        let exten = try (VarMap.find  (String.concat "" [var;"[*]"])  m) with
+        |Not_found -> V.bottom
+        
+
+      in
+      if(not (V.is_bottom exten))
+      then
+        Val (VarMap.add (String.concat "" [var;"[*]"]) (V.join v exten) m)
+        
+      else
+        
+          let rec f l var m = match l with
+            |[] -> Val m
+            |n::xs -> let vn = String.concat "" [var;"[";(string_of_int n);"]"] in
+              f xs var (VarMap.add vn (V.join (VarMap.find vn  m) v) m)
+          in
+          (f (V.concrete verif) var m)
 
   (* compare *)
   let compare a e1 op e2 = match a with

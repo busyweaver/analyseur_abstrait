@@ -1,5 +1,6 @@
 {
   int x;
-  x = 5 * 8;
+  x = rand(5,8);
+  
   print(x);
 }
