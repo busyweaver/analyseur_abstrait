@@ -80,26 +80,42 @@ module Parity = (struct
 
   let sub = lift2 Z.sub
 
-  let mul = lift2 Z.mul 
-  (*       match x,y with *)
-  (*       | TOP, Cst a |Cst a, TOP when  a= Z.zero -> Cst Z.zero *)
-  (*       | _ -> lift2 Z.mul x y *)
+  let mul x y =
+    match x,y with
+    | BOT,_ | _,BOT -> BOT
+    | TOP,_ | _,TOP -> TOP
+    | Even,Odd| Odd,Even -> Even
+    | Even,Even -> Even
+    | Odd,Odd-> Odd
+    
 
-  (* let modu = lift2 Z.rem *)
-
-  let div  = lift2 Z.div
-    (* if b = Cst Z.zero then BOT *)
-    (* else lift2 Z.div a b *)
+    
+  let div  x y=TOP
+   
 
 
-  let modu = lift2 Z.rem
+  let modu x y=TOP
 
   (* set-theoretic operations *)
   
-  let join a b = a 
+  let join x y = match x,y with
+    | BOT,_ | _,BOT -> BOT
+    | TOP,_ | _,TOP -> TOP
+    | Even,Odd| Odd,Even -> TOP
+    | Even,Even -> Even
+    | Odd,Odd-> Odd
+    
+ 
   
 
-  let meet a b = a
+  let meet x y =
+     match x,y with
+    | BOT,_ | _,BOT -> BOT
+    | TOP,x | x,TOP -> x
+    | Even,Odd| Odd,Even -> BOT
+    | Even,Even -> Even
+    | Odd,Odd-> Odd
+    
  
 
   (* no need for a widening as the domain has finite height; we use the join : Pas besoin d'un elargissement *)
@@ -108,14 +124,26 @@ module Parity = (struct
 
   (* comparison operations (filters) *)
 
-  let eq a b =	 a,b
+  let eq  x y= x,y 
  
 (*let nenv= meet a b in
     nenv, nenv*)
 
-  let neq a b = a,b
+  let neq x y =    match x,y with
+    | BOT,_ | _,BOT -> BOT,BOT
+    | TOP,Odd -> Even,Odd
+    | Odd,TOP -> Odd,Even
+    | TOP,Even ->Odd,Even
+    | Even,TOP -> Even,Odd
+    | Even,Odd -> Even,Odd
+    | Odd,Even -> Odd,Even 
+    | Even,Even -> BOT,BOT
+    | Odd,Odd-> BOT,BOT
+    |TOP,TOP ->TOP,TOP
   
-  let geq a b = a,b
+  let geq x y = x,y
+     
+
     
   let gt a b = a,b
    

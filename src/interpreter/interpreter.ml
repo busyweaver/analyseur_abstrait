@@ -230,9 +230,10 @@ module Interprete(D : DOMAIN) =
         (* compute fixpoint from the initial state (i.e., a loop invariant) *)
       let inv = fix a c n 
       in
-        (* and then filter by exit condition *)
-      (*filter inv e false*)
-      inv
+      (* and then filter by exit condition *)
+      (Format.printf "fixpoint is  %a\n" D.print_all inv ;
+      filter inv e false)
+    (*inv*)
 
     | AST_assert e ->
         let nenv = filter a e false in

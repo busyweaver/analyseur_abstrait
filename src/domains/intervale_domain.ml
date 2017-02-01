@@ -229,7 +229,8 @@ let divbis x y =
 
    let minus x y  = 
     match x,y with
-    |BOT,_ | _,BOT -> BOT
+      |x,BOT -> x
+      |BOT,x ->BOT
     |Iv(a,b),Iv(c,d) when ((gbis c b) || (gbis a d)) -> Iv (a,b)
     |Iv(a,b),Iv(c,d) when ((lbis c a) && (gbis d b)) -> BOT
     |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(a, (minus_one c))
@@ -241,12 +242,13 @@ let divbis x y =
 
   let eq a b =
 	let m = meet a b in
-    m, m
+   ((print_v m); m, m)
    
   let neq a b =
   	let z = meet a b in
-  	minus a z,minus b z
+  	 (print_string "neq\n";  (print_v a);(print_v z); (print_v (minus a z)); minus a z,minus b z)
 
+  
   let meet_strict x y=
   match x, y with 
   | BOT,_ | _,BOT -> BOT
