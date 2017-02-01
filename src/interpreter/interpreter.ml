@@ -118,14 +118,15 @@ module Interprete(D : DOMAIN) =
 
       
   (* interprets a statement, by induction on the syntax *)
-  let rec eval_stat (c:char) (n:int) (a:t) ((s,ext):stat ext) : t = (* evalue une instruction dans un environement donné *) 
+  let rec eval_stat (c:char) (n:int) (a:t) ((s,ext):stat ext) : t = (* evalue une instruction dans un environement donné *)
+    (print_string "la";
     let r = match s with    
 
     | AST_block (decl,inst) ->
         (* add the local variables *)
         let a =
           List.fold_left
-            (fun a ((_,v,s1),_) -> let size = int_of_string s1 in let size2 = size in
+            (fun a ((_,v,s1),_) -> let size = int_of_string s1 in let size2 = (print_string "ici";print_int size;size) in
              
               if(size==0)
               then
@@ -260,7 +261,7 @@ module Interprete(D : DOMAIN) =
     if !trace then 
       Format.printf "stat trace: %s: %a@\n" 
         (string_of_extent ext) D.print_all r;
-    r
+    r)
       
 
 

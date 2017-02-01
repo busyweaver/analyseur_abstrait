@@ -190,13 +190,13 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
   (* add a (0-initialized) variable to the environment *)
   let add_var a var = match a with
   | BOT -> BOT
-  | Val m ->
-      Val (VarMap.add var (V.const Z.zero) m)
+  | Val m -> (print_string "cloc";
+      Val (VarMap.add var (V.const Z.zero) m))
       
   (* remove a variable from the environment *)
   let del_var a var = match a with
   | BOT -> BOT
-  | Val m ->
+  | Val m -> 
       Val (VarMap.remove var m)
       
 
@@ -245,7 +245,7 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
               f xs var (VarMap.add vn (V.join (VarMap.find vn  m) v) m)
           in
           (match (V.concrete verif) with
-           | [x] -> let vn = (String.concat "" [var;"[";(string_of_int x);"]"]) in (print_string vn;Val (VarMap.add vn  v m))
+           | [x] -> let vn = (String.concat "" [var;"[";(string_of_int x);"]"]) in (Val (VarMap.add vn  v m))
            | x ->  (f (V.concrete verif) var m))
           
 

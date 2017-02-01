@@ -63,7 +63,7 @@ module Parity = (struct
   let bottom = BOT
 
   (* constant *)
-  let const x = if (Z.equal (Z.erem x (Z.of_string "2")) Z.one ) then Odd else Even
+  let const x = (print_string "oooooooo";if (Z.equal (Z.erem x (Z.of_string "2")) Z.one ) then Odd else Even)
 
                  (* interval *)
                  
@@ -148,10 +148,14 @@ module Parity = (struct
   let gt a b = a,b
    
   (* subset inclusion of concretizations *)
-  let subset a b = true
+  let subset a b =
+    match a,b with
+    |_,TOP->true
+    | BOT,_->true
+    |x,y->false
   
   (* check the emptyness of the concretization *)
-  let is_bottom a = true
+  let is_bottom a = match a with |BOT -> true |_->false
   
 
   (* prints abstract element *)

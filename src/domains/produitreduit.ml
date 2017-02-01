@@ -34,15 +34,35 @@ module Produitreduit =
   (* ********* *)
  
   (*let print_v x = I.print_v (fst x);P.print_v (snd x)	*)	
+  let reduce x =
+    match (fst x,snd x) with
+    | I.BOT,_|_,P.BOT -> I.BOT,P.BOT
+    | I.Iv (x,y),P.Odd ->
+     ( match (I.is_even x,I.is_even y) with
+      |false,false -> I.Iv (x,y),P.Odd
+      |true,true ->I.Iv(I.plus_one x,I.minus_one y),P.Odd
+      |true,false ->I.Iv(I.plus_one x,y),P.Odd
+      |false,true ->I.Iv(x,I.minus_one y),P.Odd)
+        
+            
+    | I.Iv (x,y),P.Even ->
+        ( match (I.is_even x,I.is_even y) with
+      |true,true -> I.Iv (x,y),P.Even
+      |false,false ->I.Iv(I.plus_one x,I.minus_one y),P.Even
+      |false,true ->I.Iv(I.plus_one x,y),P.Even
+      |true,false ->I.Iv(x,I.minus_one y),P.Even)
+        
+    | x,y -> x,y
 
+      
 
   (* lift unary arithmetic operations, from integers to t *)
-  let lift1 f x = ((I.lift1 f (fst x)),P.lift1 f (snd x))
+  let lift1 f x = reduce ((I.lift1 f (fst x)),P.lift1 f (snd x))
    
   (*let ouex a b = (a && (not b)) || ((not a) && b)*)
   
   (* lift binary arithmetic operations *)
-  let lift2 f x y = ((I.lift2 f (fst x) (fst y)),(P.lift2 f (snd x) (snd y)))
+  let lift2 f x y = reduce ((I.lift2 f (fst x) (fst y)),(P.lift2 f (snd x) (snd y)))
    
        
              
@@ -50,34 +70,34 @@ module Produitreduit =
   (* ************************ *)
 
   (* unrestricted value *)
-  let top = (I.top,P.top)
+  let top = reduce (I.top,P.top)
 
   (* bottom value *)
-  let bottom = (I.bottom,P.bottom)
+  let bottom = reduce (I.bottom,P.bottom)
 
   (* constant *)
-  let const c = (I.const c,P.const c)
+  let const c = reduce (I.const c,P.const c)
 
   (* interval *)
-  let rand x y = (I.rand x y,P.rand x y)
+  let rand x y = reduce (I.rand x y,P.rand x y)
       
   
 
-  let join x y = (I.join (fst x)  (fst y),P.join (snd x) (snd y))
-  let meet x y = (I.meet (fst x) (fst y),P.meet (snd x)  (snd y))
+  let join x y = reduce (I.join (fst x)  (fst y),P.join (snd x) (snd y))
+  let meet x y = reduce (I.meet (fst x) (fst y),P.meet (snd x)  (snd y))
 
-   let neg = lift1 Z.neg
+   let neg =  lift1 Z.neg
 
-  let add = lift2 Z.add
+  let add =  lift2 Z.add
 
-  let sub = lift2 Z.sub
+  let sub =  lift2 Z.sub
 
 
-   let mul x y = (I.mul (fst x) (fst y),P.mul (snd x) (snd y))
+   let mul x y = reduce (I.mul (fst x) (fst y),P.mul (snd x) (snd y))
 	
   let modu = lift2 Z.rem
 
-  let div x y = (I.div (fst x) (fst y),P.div (snd x) (snd y))
+  let div x y = reduce (I.div (fst x) (fst y),P.div (snd x) (snd y))
    
     
 
@@ -93,16 +113,29 @@ module Produitreduit =
     
   (* comparison operations (filters) *)
 
-  let eq x y = (I.eq (fst x) (fst y),P.eq (snd x) (snd y))
-  let neq x y=(I.neq (fst x) (fst y),P.neq (snd x) (snd y))
+  let eq x y =  let (x1,x2)= I.eq (fst x) (fst y)in
+    let (y1,y2) =  P.eq (snd x) (snd y) in
+    reduce (x1,y1), reduce (x2,y2)
+
+  
+  let neq x y=  let (x1,x2)= I.neq (fst x) (fst y)in
+    let (y1,y2) =  P.neq (snd x) (snd y) in
+    reduce (x1,y1), reduce (x2,y2)
   
 
 
 
    
-let geq x y =(I.geq (fst x) (fst y),P.geq (snd x) (snd y))
+let geq x y = let (x1,x2)= I.geq (fst x) (fst y)in
+    let (y1,y2) =  P.geq (snd x) (snd y) in
+    reduce (x1,y1), reduce (x2,y2)
 
-let gt x y =(I.gt (fst x) (fst y),P.gt (snd x) (snd y))
+let gt x y = let (x1,x2)= I.gt (fst x) (fst y)in
+    let (y1,y2) =  P.gt (snd x) (snd y) in
+  reduce (x1,y1), reduce (x2,y2)
+
+
+
   (* subset inclusion of concretizations *)
   let subset (x:t) (y:t) = ((I.subset (fst x) (fst y)) && (P.subset (snd x) (snd y)))
   (* check the emptyness of the concretization *)
@@ -116,23 +149,23 @@ let gt x y =(I.gt (fst x) (fst y),P.gt (snd x) (snd y))
   
   (* operator dispatch *)
         
-  let unary x op = ((I.unary (fst x) op),(P.unary (snd x) op))
+  let unary x op = reduce ((I.unary (fst x) op), (P.unary (snd x) op))
  
 
-  let binary x y op = ((I.binary (fst x) (fst y) op),(P.binary (snd x) (snd y) op))
+  let binary x y op = reduce ((I.binary (fst x) (fst y) op),(P.binary (snd x) (snd y) op))
 
   let compare (x:t) (y:t) op =
     let (x1,x2) = (I.compare (fst x) (fst y) op) in
     let (y1,y2) = (P.compare (snd x) (snd y) op) in
-    ((x1,y1),(x2,y2))
+     (reduce (x1,y1),reduce (x2,y2))
     
-  let bwd_unary x op r = ((I.bwd_unary (fst x) op (fst r)),(P.bwd_unary (snd x) op (snd r)))
+  let bwd_unary x op r = reduce ((I.bwd_unary (fst x) op (fst r)),(P.bwd_unary (snd x) op (snd r)))
 
         
   let bwd_binary x y op r =
     let (x1,x2) = (I.bwd_binary (fst x) (fst y) op (fst r)) in
     let (y1,y2) = (P.bwd_binary (snd x) (snd y) op (snd r)) in
-    ((x1,y1),(x2,y2))
+     (reduce (x1,y1),reduce (x2,y2))
 
 
 
