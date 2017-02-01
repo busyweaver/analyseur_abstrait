@@ -55,7 +55,7 @@ let main () =
      "-delay", Arg.Int (fun (n) -> action := IntervaleAnalysis.eval_prog 'd' n),"";
      "-unroll", Arg.Int (fun (n) -> action := IntervaleAnalysis.eval_prog 'u' n),"";
      "-reduit", Arg.Unit (fun () -> action := ProduitAnalysis.eval_prog 'a' 0),"";
-      "-parite", Arg.Unit (fun () -> action := ProduitAnalysis.eval_prog 'a' 0),"";
+      "-parite", Arg.Unit (fun () -> action := ParityAnalysis.eval_prog 'a' 0),"";
    
      
    ]

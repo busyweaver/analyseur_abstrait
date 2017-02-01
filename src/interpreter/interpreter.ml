@@ -125,7 +125,8 @@ module Interprete(D : DOMAIN) =
         (* add the local variables *)
         let a =
           List.fold_left
-            (fun a ((_,v,s1),_) -> let size = int_of_string s1 in
+            (fun a ((_,v,s1),_) -> let size = int_of_string s1 in let size2 = size in
+             
               if(size==0)
               then
                 D.add_var a v
@@ -138,10 +139,10 @@ module Interprete(D : DOMAIN) =
                 
                 let rec f v size a =
                 match size with
-                |0 -> D.assign (D.add_var  a v) v (AST_int_const (string_of_int (size-1),ext))
+                |0 -> D.assign (D.add_var  a v) v (AST_int_const (string_of_int (size2-1),ext))
                 |n-> f v (n-1) (D.add_var a (String.concat "" [v;"[";(string_of_int (size-1));"]"]))
                 in
-                (f v size a)
+                 (f v size a)
                 
             )  
             a decl
@@ -152,7 +153,7 @@ module Interprete(D : DOMAIN) =
         
         (* destroy the local variables *)
         List.fold_left
-          (fun a ((_,v,s),_) -> D.del_var a v)
+          (fun a ((_,v,s),_) -> (print_string "local";print_string v;D.del_var a v))
           a decl
         
     | AST_assign ((i,_),(e,_)) ->(print_string "assign";

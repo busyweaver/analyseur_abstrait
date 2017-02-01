@@ -42,7 +42,9 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
   (* propagates bottom *)
   exception Empty
 
-      
+  let rec print_list = function 
+[] -> ()
+| e::l -> (print_int e ; print_string "puis  " ; print_list l )   
 
   (* utilities *)
   (* ********* *)
@@ -213,11 +215,12 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
         let _,ind = eval m e1 in
         if (V.is_bottom v || V.is_bottom ind)  then BOT
         else
-      let dom = (V.rand (Z.of_string "0") (Z.of_string (string_of_int (List.hd (V.concrete(VarMap.find var  m)))))) in
+          let conc = (V.concrete(VarMap.find var  m)) in
+      let dom = (V.rand (Z.of_string "0") (Z.of_string (string_of_int (List.hd conc)))) in
       let verif = if (V.subset ind dom)
         then ind
         else
-          ( print_string (String.concat "" ["\n Index may be out of bound for array ";var;"\n"]);
+          (print_list conc; print_string (String.concat "" ["\n Index may be out of bound for array ";var;"\n"]);
             let dom_ok = V.meet ind dom in
             if (V.is_bottom dom_ok) then failwith "Trying to write on unreachable index"
                 else dom_ok
@@ -241,7 +244,10 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
             |n::xs -> let vn = String.concat "" [var;"[";(string_of_int n);"]"] in
               f xs var (VarMap.add vn (V.join (VarMap.find vn  m) v) m)
           in
-          (f (V.concrete verif) var m)
+          (match (V.concrete verif) with
+           | [x] -> let vn = (String.concat "" [var;"[";(string_of_int x);"]"]) in (print_string vn;Val (VarMap.add vn  v m))
+           | x ->  (f (V.concrete verif) var m))
+          
 
   (* compare *)
   let compare a e1 op e2 = match a with

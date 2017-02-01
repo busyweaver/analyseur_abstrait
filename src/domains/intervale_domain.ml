@@ -361,16 +361,21 @@ let geq a b =
       |Cst x,Cst y ->
         let (r,s) = (int_of_string (Z.to_string x),int_of_string (Z.to_string y)) in
         let rec f r s acc =
+          
           if(r>s)
           then
             acc
           else
-            f (r+1) s (r::acc)
+            (print_string "la"; print_int r;print_int s;f (r+1) s (r::acc))
         in
         (f r s [])
       |_,_ -> failwith "concrete not supported"
         
-        
+  let is_even x =
+    match x with
+    | Minf -> false
+    | Pinf -> false
+    | Cst y -> (if (Z.erem y (Z.of_string "2")== Z.one) then false else true)
        
       
 end )
