@@ -84,9 +84,11 @@ module Constants = (struct
   let modu = lift2 Z.rem
 
   let div a b =
-    if b = Cst Z.zero then BOT
-    else lift2 Z.div a b
-
+    match a,b with
+    |x,Cst y when (y==Z.zero) -> BOT
+    |Cst y,TOP when (y==Z.zero)->Cst Z.zero
+    |_,_ -> lift2 Z.div a b
+   
 
   (* set-theoretic operations *)
   

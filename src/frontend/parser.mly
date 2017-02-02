@@ -82,6 +82,7 @@ open Abstract_syntax_tree
 file: t=list(ext(stat)) TOK_EOF { t }
 
 
+
 /* expressions */
 /***************/
 
@@ -139,6 +140,9 @@ bool_expr:
     { AST_compare (o,e1,e2) }
 
 
+
+
+    
 // integer expressions    
 int_expr:    
 | TOK_LPAREN e=int_expr TOK_RPAREN
@@ -207,8 +211,10 @@ stat:
 | TOK_ASSERT TOK_LPAREN e=ext(bool_expr) TOK_RPAREN TOK_SEMICOLON
   { AST_assert e }
 
+				   
 | TOK_PRINT TOK_LPAREN l=separated_list(TOK_COMMA,ext(TOK_id)) TOK_RPAREN TOK_SEMICOLON
-  { AST_print l }
+				   { AST_print l }
+
 
 | TOK_HALT TOK_SEMICOLON
   { AST_HALT }

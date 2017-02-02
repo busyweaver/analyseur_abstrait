@@ -155,7 +155,7 @@ module Interprete(D : DOMAIN) =
         
         (* destroy the local variables *)
         List.fold_left
-          (fun a ((_,v,s),_) -> (print_string "local";print_string v;D.del_var a v))
+          (fun a ((_,v,s),_) -> (D.del_var a v))
           a decl
         
     | AST_assign ((i,_),(e,_)) ->
@@ -181,7 +181,7 @@ module Interprete(D : DOMAIN) =
           
     | AST_while (e,s) ->
       let rec fix  (x:t) c n : t =
-        (print_string "loop!!\n";
+     
         let app =
           if(c==1)
           then if (n>0)
@@ -199,7 +199,7 @@ module Interprete(D : DOMAIN) =
           else n
         in
           if D.subset app x then app
-          else fix app c new_n)
+          else fix app c new_n
 
       in
         
