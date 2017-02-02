@@ -192,7 +192,8 @@ module Interprete(D : DOMAIN) =
               then (eval_stat c n xt (filter x e true) s)
               else  D.widen x (eval_stat c n xt (filter x e true) s)
           else
-             D.join x (eval_stat c n xt (filter x e true) s) 
+            (* le cas classique on fait un widen*)
+             D.widen x (eval_stat c n xt (filter x e true) s) 
         in
         let new_n =
           if(c==1 || c==2) then n-1
