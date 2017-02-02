@@ -199,7 +199,7 @@ module Interprete(D : DOMAIN) =
           if(c==1 || c==2) then n-1
           else n
         in
-          if D.subset app x then x
+          if D.subset app x then app
           else fix app c new_n
 
       in
