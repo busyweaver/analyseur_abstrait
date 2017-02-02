@@ -208,9 +208,6 @@ let assign_array  a var e1 e2 =
          ) s acc
     ) a EnvSet.empty
 
-
-
-
   
   (* filter environments to keep only those satisfying the comparison *)
   let compare m e1 op e2 =

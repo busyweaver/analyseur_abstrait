@@ -1,1 +1,0 @@
-0012_rand_empty.c:4.2-5.0: bottom

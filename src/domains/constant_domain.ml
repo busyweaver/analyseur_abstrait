@@ -45,9 +45,6 @@ module Constants = (struct
     | Cst a, Cst b -> Cst (f a b)
           
 
-
-
-
   (* interface implementation *)
   (* ************************ *)
 
