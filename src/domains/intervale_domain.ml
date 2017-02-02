@@ -242,7 +242,7 @@ let divbis x y =
 
   let eq a b =
 	let m = meet a b in
-   ((print_v m); m, m)
+    m, m
    
   let neq a b =
   	let z = meet a b in
