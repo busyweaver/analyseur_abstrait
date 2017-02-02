@@ -45,20 +45,16 @@ let main () =
   let action = ref eval_prog in
   let files = ref [] in
   (* parse arguments *)
-  let ext = ref 0 in
-  let unr = ref 0 in
-  let ty = ref 0 in
   Arg.parse
     (* handle options *)
     ["-trace", Arg.Set Interpreter.trace, "";
-     "-concrete", Arg.Unit (fun () -> action := ConcreteAnalysis.eval_prog !ty !unr !ext),"";
-     "-constant", Arg.Unit (fun () -> action := ConstantAnalysis.eval_prog !ty !unr !ext),"";
-     "-interval", Arg.Unit (fun () -> action := IntervaleAnalysis.eval_prog !ty !unr !ext),"";
-     "-singlearray", Arg.Unit (fun () -> ext:=1),"";
-     "-delay", Arg.Int (fun (n) -> unr:=n;ty:=1),"";
-     "-unroll", Arg.Int (fun (n) -> unr:=n;ty:=2),"";
-     "-reduit", Arg.Unit (fun () ->  action := ProduitAnalysis.eval_prog !ty !unr !ext),"";
-      "-parite", Arg.Unit (fun () -> action := ParityAnalysis.eval_prog !ty !unr !ext),"";
+     "-concrete", Arg.Unit (fun () -> action := ConcreteAnalysis.eval_prog 'a' 0),"";
+     "-constant", Arg.Unit (fun () -> action := ConstantAnalysis.eval_prog 'a' 0),"";
+     "-interval", Arg.Unit (fun () -> action := IntervaleAnalysis.eval_prog 'a' 0),"";
+     "-extsingle", Arg.Unit (fun () -> action := IntervaleAnalysis.eval_prog 'e' 0),"";
+     "-delay", Arg.Int (fun (n) -> action := IntervaleAnalysis.eval_prog 'd' n),"";
+     "-unroll", Arg.Int (fun (n) -> action := IntervaleAnalysis.eval_prog 'u' n),"";
+      "-reduit", Arg.Int (fun (n) -> action := ProduitAnalysis.eval_prog 'u' n),"";
    
      
    ]
@@ -68,7 +64,7 @@ let main () =
   List.iter
     (fun filename ->
       let prog = File_parser.parse_file filename in
-      !action  prog
+      !action prog
     )
     !files
     

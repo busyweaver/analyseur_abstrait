@@ -53,7 +53,7 @@ let fatal_error ext s =
 module type INTERPRETER = 
 sig
   (* analysis of a program, given its abstract syntax tree *)
-  val eval_prog: char->int->prog->unit
+  val eval_prog: int->int->int->prog->unit
 end
 
 
@@ -118,22 +118,23 @@ module Interprete(D : DOMAIN) =
 
       
   (* interprets a statement, by induction on the syntax *)
-  let rec eval_stat (c:char) (n:int) (a:t) ((s,ext):stat ext) : t = (* evalue une instruction dans un environement donné *)
-    (print_string "la";
+  let rec eval_stat (c:int) (n:int) (xt:int) (a:t) ((s,ext):stat ext) : t = (* evalue une instruction dans un environement donné *)
+
     let r = match s with    
 
     | AST_block (decl,inst) ->
         (* add the local variables *)
         let a =
           List.fold_left
-            (fun a ((_,v,s1),_) -> let size = int_of_string s1 in let size2 = (print_string "ici";print_int size;size) in
+            (fun a ((_,v,s1),_) -> let size = int_of_string s1 in let size2 = size in
              
               if(size==0)
               then
                 D.add_var a v
               else
+                let v = String.concat "" ["$";v] in
                 (* type d extension*)
-              if (c=='e')
+              if (xt==1)
               then (* extension with one stored value*)
                 D.assign (D.add_var  (D.add_var a (String.concat "" [v;"[";"*";"]"])) v) v (AST_int_const (string_of_int (size-1),ext))
               else (*extension with independent values on indeces*)
@@ -150,30 +151,30 @@ module Interprete(D : DOMAIN) =
         in
         (* interpret the block recursively *)
 
-        let a = List.fold_left (eval_stat c n) a inst in
+        let a = List.fold_left (eval_stat c n xt) a inst in
         
         (* destroy the local variables *)
         List.fold_left
           (fun a ((_,v,s),_) -> (print_string "local";print_string v;D.del_var a v))
           a decl
         
-    | AST_assign ((i,_),(e,_)) ->(print_string "assign";
+    | AST_assign ((i,_),(e,_)) ->
         (* assigment is delegated to the domain *)
-               D.assign a i e)
+               D.assign a i e
 
-   | AST_assign_array ((i,_),(e1,_),(e2,_)) ->(print_string "assign array";
+   | AST_assign_array ((i,_),(e1,_),(e2,_)) ->
         (* assigment is delegated to the domain *)
-        D.assign_array  a i e1 e2)
+        D.assign_array  a (String.concat "" ["$"; i]) e1 e2
           
     | AST_if (e,s1,Some s2) ->
         (* compute both branches *)
-        let t = eval_stat c n (filter a e true ) s1 in
-        let f = eval_stat c n (filter a e false) s2 in
+        let t = eval_stat c n xt (filter a e true ) s1 in
+        let f = eval_stat c n xt (filter a e false) s2 in
         (* then join *)
         D.join t f
     | AST_if (e,s1,None) ->
         (* compute both branches *)
-        let t = eval_stat c n (filter a e true ) s1 in
+        let t = eval_stat c n xt (filter a e true ) s1 in
         let f = filter a e false in
         (* then join *)
         D.join t f
@@ -182,54 +183,26 @@ module Interprete(D : DOMAIN) =
       let rec fix  (x:t) c n : t =
         (print_string "loop!!\n";
         let app =
-          if(c=='d')
+          if(c==1)
           then if (n>0)
-            then D.join x (eval_stat c n (filter x e true) s)
-            else D.widen x (eval_stat c n (filter x e true) s)
-          else if(c=='u')
+            then D.join x (eval_stat c n xt (filter x e true) s)
+            else D.widen x (eval_stat c n xt (filter x e true) s)
+          else if(c==2)
           then if(n>0)
-              then (eval_stat c n (filter x e true) s)
-              else  D.widen x (eval_stat c n (filter x e true) s)
+              then (eval_stat c n xt (filter x e true) s)
+              else  D.widen x (eval_stat c n xt (filter x e true) s)
           else
-            (print_string "hey"; D.join x (eval_stat c n (filter x e true) s) )
+             D.join x (eval_stat c n xt (filter x e true) s) 
         in
         let new_n =
-          if(c=='d' || c=='u') then n-1
+          if(c==1 || c==2) then n-1
           else n
         in
           if D.subset app x then app
           else fix app c new_n)
 
       in
-        (* simple fixpoint *)
-        (* let rec fix (f:t -> t) (x:t) : t =  *)
-        (*   let fx = f x in *)
-        (*   if D.subset fx x then fx *)
-        (*   else fix f fx *)
-        (* in *)
-        (* (\* function to accumulate one more loop iteration: *)
-        (*    F(X(n+1)) = X(0) U body(F(X(n) *)
-        (*    we apply the loop body and add back the initial abstract state *)
-        (* *\)         *)
-        (* let f x = *)
-        (*   if(c=='d') *)
-        (*   then *)
-        (*     ( if(n>0) *)
-        (*       then  *)
-        (*         D.join a (eval_stat c (n-1) (filter x e true) s) *)
-        (*       else *)
-        (*         D.widen a (eval_stat c n (filter x e true) s)) *)
-
-        (*   else if(c=='u') *)
-        (*   then(if(n>0) *)
-        (*        then (eval_stat c (n-1) (filter x e true) s) *)
-        (*       else D.widen a (eval_stat c n (filter x e true) s)) *)
-            
-        (*   else *)
-        (*     D.widen a (eval_stat c n (filter x e true) s) *)
-
-        (*       in *)
-        (* compute fixpoint from the initial state (i.e., a loop invariant) *)
+        
       let inv = fix a c n 
       in
       (* and then filter by exit condition *)
@@ -261,14 +234,14 @@ module Interprete(D : DOMAIN) =
     if !trace then 
       Format.printf "stat trace: %s: %a@\n" 
         (string_of_extent ext) D.print_all r;
-    r)
+    r
       
 
 
   (* entry-point of the program analysis *)
-  let rec eval_prog (c:char) (n:int) (l:prog)  : unit =
+  let rec eval_prog (c:int) (n:int) (xt:int) (l:prog)  : unit =
     (* simply analyze each statement in the program *)
-    let _ = List.fold_left (eval_stat c n) (D.init()) l in
+    let _ = List.fold_left (eval_stat c n xt) (D.init()) l in
     (* nothing useful to return *)
     ()
 

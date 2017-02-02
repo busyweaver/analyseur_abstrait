@@ -128,10 +128,10 @@ let rec rl f l def = match l with |[]->def |[z] -> z| z::zs -> f z (rl f zs def)
 
   
 
-  let join x y = (print_string "join\n";print_v x; print_v y;
+  let join x y = 
                   (match x,y with
   | BOT,a | a,BOT -> a
-  | Iv(a, b), Iv (c, d) -> Iv ((minval a c), (maxval b d))))
+  | Iv(a, b), Iv (c, d) -> Iv ((minval a c), (maxval b d)))
   
   let meet x y = match x,y with
   | BOT,_ | _,BOT -> BOT
@@ -202,14 +202,14 @@ let divbis x y =
   
   
   (* needs to be implemented *)
-  let widen x y =  (print_string "widen!!\n";print_v x;print_v y;
+  let widen x y = 
      match x,y with
      |BOT,x|x,BOT -> x
      |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (not (lbis b d))) -> Iv(a,b)
      |Iv(a,b), Iv (c,d) when ((gbis a c) && (not (lbis b d)))  -> Iv(Minf,b)
      |Iv(a,b), Iv (c,d) when ((not (gbis a c)) && (lbis b d)) -> Iv(a,Pinf)
      |Iv(a,b), Iv (c,d) when ((gbis a c) && (lbis b d)) -> Iv(Minf,Pinf)
-     |_ -> join x y)
+     |_ -> join x y
 
   
 
@@ -246,7 +246,7 @@ let divbis x y =
    
   let neq a b =
   	let z = meet a b in
-  	 (print_string "neq\n";  (print_v a);(print_v z); (print_v (minus a z)); minus a z,minus b z)
+  	  minus a z,minus b z
 
   
   let meet_strict x y=
@@ -254,7 +254,7 @@ let divbis x y =
   | BOT,_ | _,BOT -> BOT
   | Iv (a, b),Iv (c, d) -> if((gbis c b) || (gbis a d)) then BOT else Iv((plus_one (maxval a c)), (minus_one (minval b d)))
 
-  let gt x y = (print_string "greater_than\n";print_v x;print_v y;
+  let gt x y = 
                 match x,y with
 
                 |BOT,_ | _,BOT -> BOT,BOT
@@ -264,7 +264,7 @@ let divbis x y =
                 |Iv(a,b),Iv(c,d) when ((lbis c a) && (gbis d b)) -> Iv(a,b),Iv(c,minus_one b)
                 |Iv(a,b),Iv(c,d) when (not(gbis c b)) -> Iv(plus_one c,b),Iv(c,minus_one b)
                 |Iv(a,b),Iv(c,d) when (not(gbis a d)) -> Iv(a,b),Iv(c,d) 
-                |_ ,_-> x,y)
+                |_ ,_-> x,y
 
 
 
@@ -366,7 +366,7 @@ let geq a b =
           then
             acc
           else
-            (print_string "la"; print_int r;print_int s;f (r+1) s (r::acc))
+            f (r+1) s (r::acc)
         in
         (f r s [])
       |_,_ -> failwith "concrete not supported"

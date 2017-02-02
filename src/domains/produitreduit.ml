@@ -145,7 +145,7 @@ let gt x y = let (x1,x2)= I.gt (fst x) (fst y)in
 
 
   (* prints abstract element *)
-  let print fmt x = I.print fmt (fst x);Format.fprintf fmt "2eme domaine "; P.print fmt (snd x)
+  let print fmt x = I.print fmt (fst x);Format.fprintf fmt ","; P.print fmt (snd x)
   
   (* operator dispatch *)
         

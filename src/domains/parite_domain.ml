@@ -148,11 +148,13 @@ module Parity = (struct
   let gt a b = a,b
    
   (* subset inclusion of concretizations *)
-  let subset a b =
+  let subset a b = 
     match a,b with
     |_,TOP->true
-    | BOT,_->true
-    |x,y->false
+    |BOT,_->true
+    |x,y when (not (x==y))-> false
+    |x,y when (x==y) -> true
+    |_,_->true
   
   (* check the emptyness of the concretization *)
   let is_bottom a = match a with |BOT -> true |_->false

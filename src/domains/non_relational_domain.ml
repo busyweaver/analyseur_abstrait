@@ -86,6 +86,7 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
         v
 
     | AST_array_id((v,_),(i,ext)) ->
+      let v = String.concat "" ["$";v] in
       let tr,res = eval m i in
       let dom = (V.rand (Z.of_string "0") (Z.of_string (string_of_int (List.hd (V.concrete(VarMap.find v  m)))))) in
       let verif = if (V.subset res dom)
@@ -190,8 +191,8 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
   (* add a (0-initialized) variable to the environment *)
   let add_var a var = match a with
   | BOT -> BOT
-  | Val m -> (print_string "cloc";
-      Val (VarMap.add var (V.const Z.zero) m))
+  | Val m -> 
+      Val (VarMap.add var (V.const Z.zero) m)
       
   (* remove a variable from the environment *)
   let del_var a var = match a with
@@ -220,7 +221,7 @@ module NonRelational(V : VALUE_DOMAIN) = (struct
       let verif = if (V.subset ind dom)
         then ind
         else
-          (print_list conc; print_string (String.concat "" ["\n Index may be out of bound for array ";var;"\n"]);
+          (print_string (String.concat "" ["\n Index may be out of bound for array ";var;"\n"]);
             let dom_ok = V.meet ind dom in
             if (V.is_bottom dom_ok) then failwith "Trying to write on unreachable index"
                 else dom_ok
